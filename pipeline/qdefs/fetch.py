@@ -13,11 +13,13 @@ import urllib.request
 from pathlib import Path
 
 MVT_INDEX = "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/indicators.yaml"
-MB_FULL_CSV = "https://bazaar.abuse.ch/export/csv/full/"
+# Full MalwareBazaar dump; the free abuse.ch Auth-Key goes in the URL path.
+MB_FULL_CSV = "https://mb-api.abuse.ch/v2/files/exports/{key}/full.csv.zip"
 USER_AGENT = "Qastellan-definitions/1 (+https://github.com/aadvark/Qastellan)"
 
 
-def download(url: str, dest: Path, headers: dict[str, str] | None = None) -> bool:
+def download(url: str, dest: Path, headers: dict[str, str] | None = None, label: str | None = None) -> bool:
+    """Save url to dest. `label` is printed instead of the URL when it contains a secret."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=300) as resp, dest.open("wb") as fh:
@@ -25,7 +27,8 @@ def download(url: str, dest: Path, headers: dict[str, str] | None = None) -> boo
                 fh.write(chunk)
         return True
     except Exception as exc:
-        print(f"warning: could not download {url}: {exc}", file=sys.stderr)
+        shown = label or url
+        print(f"warning: could not download {shown}: {type(exc).__name__}", file=sys.stderr)
         dest.unlink(missing_ok=True)
         return False
 
@@ -56,9 +59,12 @@ def main(argv: list[str] | None = None) -> None:
     dest = Path(args.dest)
     (dest / "stix").mkdir(parents=True, exist_ok=True)
 
-    # MalwareBazaar: an Auth-Key is free from abuse.ch; kept in a repo secret.
-    mb_headers = {"Auth-Key": os.environ["MB_AUTH_KEY"]} if os.environ.get("MB_AUTH_KEY") else {}
-    download(MB_FULL_CSV, dest / "malwarebazaar_full.csv.zip", mb_headers)
+    # MalwareBazaar needs a free Auth-Key from auth.abuse.ch, kept in the repo secret MB_AUTH_KEY.
+    key = os.environ.get("MB_AUTH_KEY", "").strip()
+    if key:
+        download(MB_FULL_CSV.format(key=key), dest / "malwarebazaar_full.csv.zip", label="MalwareBazaar full export")
+    else:
+        print("notice: MB_AUTH_KEY not set, skipping MalwareBazaar", file=sys.stderr)
 
     index = dest / "mvt_indicators.yaml"
     if download(MVT_INDEX, index):
