@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qastellan – free, open-source malware scanner for Android</title>
+<meta name="description" content="Qastellan finds malware, risky apps and hidden trackers on your Android phone. Free, open source, no ads, and nothing ever leaves your phone. Made in Singapore.">
+<meta name="theme-color" content="#0A1020">
+<meta property="og:title" content="Qastellan – guard your phone, keep your apps honest">
+<meta property="og:description" content="Free, open-source malware scanner for Android. Everything is checked on your phone.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(fonts/inter-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:500;font-display:swap;src:url(fonts/inter-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(fonts/inter-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:300;font-display:swap;src:url(fonts/outfit-latin-300-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:400;font-display:swap;src:url(fonts/outfit-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Outfit;font-weight:500;font-display:swap;src:url(fonts/outfit-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:500;font-display:swap;src:url(fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2")}
+:root{--bg:#0A1020;--ink:#E6EDF7;--muted:#A9B4C4;--indigo:#818CF8;--indigo-d:#4F46E5;--teal:#2DD4BF;--teal-d:#0F766E;--pink:#FF5FA2;--line:rgba(148,163,184,.2);--paper:#F4F6FA;--text:#0F172A;--text2:#475569;--border:#E2E8F0}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--text);font:16px/1.6 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--indigo)}
+h1,h2,h3{font-family:Outfit,Inter,sans-serif;font-weight:400;margin:0;line-height:1.2}
+p{margin:0}
+.wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 24px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;letter-spacing:1.5px}
+.accent{color:var(--indigo)} .tealc{color:var(--teal)} .indigo{color:var(--indigo-d)}
+.dark{background:var(--bg);color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 26px;border-radius:28px;font-weight:600;font-size:16px;text-decoration:none;border:0;cursor:pointer}
+.btn-primary{background:var(--indigo);color:#0A0F24} .btn-primary:hover{background:#A5B4FC;color:#0A0F24}
+.btn-ghost{border:1px solid rgba(148,163,184,.35);background:rgba(255,255,255,.04);color:var(--ink)} .btn-ghost:hover{background:rgba(255,255,255,.09);color:var(--ink)}
+.icon-btn{width:44px;height:44px;border-radius:22px;border:1px solid rgba(148,163,184,.35);background:rgba(255,255,255,.04);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+/* hero */
+.hero{position:relative;overflow:hidden}
+.hero-cubes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-cubes path{fill:none;stroke:var(--indigo);stroke-width:1;opacity:.3}
+.topbar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:22px;padding-bottom:22px}
+.brand{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-family:Outfit,sans-serif;font-size:24px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.btn-small{height:40px;padding:0 18px;font-size:14px;border-radius:20px}
+.hero-grid{position:relative;display:flex;align-items:center;justify-content:space-between;gap:56px;flex-wrap:wrap;padding-top:56px;padding-bottom:110px}
+.hero-copy{flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.pill{align-self:flex-start;color:var(--teal);padding:7px 12px;border-radius:999px;border:1px solid rgba(45,212,191,.35);background:rgba(45,212,191,.08)}
+.hero h1{font-size:clamp(42px,6vw,68px);line-height:1.04;letter-spacing:-1.5px}
+.lead{font-size:19px;color:var(--muted);max-width:560px}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.ticks{display:flex;gap:10px 22px;flex-wrap:wrap;font-size:14px;color:var(--muted)} .ticks span{display:flex;align-items:center;gap:8px}
+.hero-visual{flex:0 1 460px;display:flex;justify-content:center}
+.stage{position:relative;width:460px;max-width:100%;height:700px;display:flex;align-items:center;justify-content:center}
+.radar{position:absolute;left:50%;top:0;width:460px;height:700px;transform:translateX(-50%);pointer-events:none}
+.sweep{transform-origin:230px 350px;animation:spin 9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.phone{position:relative;width:312px;height:662px;border-radius:46px;padding:12px;background:#111827;border:1px solid rgba(148,163,184,.25)}
+.phone-inner{width:288px;height:638px;border-radius:36px;overflow:hidden;position:relative}
+.phone-screen{position:absolute;left:0;top:0;width:390px;height:844px;transform:scale(.738);transform-origin:top left;background:#0A1020;color:var(--ink);display:flex;flex-direction:column;font-family:Inter,sans-serif;overflow:hidden}
+.phone-cubes{position:absolute;inset:0;width:390px;height:844px;-webkit-mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.75) 35%,transparent 85%);mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.75) 35%,transparent 85%)}
+.phone-cubes path{fill:none;stroke:var(--indigo);stroke-width:1;opacity:.34}
+.ps-head{position:relative;display:flex;align-items:center;gap:8px;padding:22px 22px 6px;font-family:Outfit,sans-serif;font-size:22px;font-weight:500}
+.ps-status{position:relative;margin:8px 20px 0;padding:22px 22px 18px;border-radius:28px;background:rgba(18,27,46,.85);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.ps-ring{position:relative;width:148px;height:148px;display:flex;align-items:center;justify-content:center} .ps-ring > svg{position:absolute;inset:0} .ps-glyph{position:relative}
+.ps-status strong{font-family:Outfit,sans-serif;font-size:28px;font-weight:500;color:var(--teal)}
+.ps-status span{font-size:15px;color:var(--muted)}
+.ps-status em{font-style:normal;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:1px;color:var(--muted)}
+.ps-scan{position:relative;margin:16px 20px 0;height:58px;border-radius:29px;background:var(--indigo);color:#0A0F24;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:17px}
+.ps-list{position:relative;margin:16px 20px 0;padding:2px 18px;border-radius:20px;background:rgba(18,27,46,.85);border:1px solid var(--line)}
+.ps-list div{display:flex;justify-content:space-between;align-items:center;height:44px;font-size:14px;border-bottom:1px solid var(--line)} .ps-list div:last-child{border-bottom:0}
+.ps-list span{color:var(--muted)} .ps-list .ok{color:var(--teal)}
+.ps-tiles{position:relative;margin:16px 20px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile{height:76px;border-radius:18px;background:rgba(18,27,46,.85);border:1.5px solid var(--indigo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600}
+.ps-nav{position:absolute;left:0;right:0;bottom:0;height:72px;background:rgba(10,16,32,.85);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr)}
+.ps-nav span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--muted)} .ps-nav .on{color:var(--indigo);font-weight:600}
+.chip{position:absolute;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:16px;background:rgba(14,21,40,.92);border:1px solid rgba(148,163,184,.25)}
+.chip strong{display:block;font-size:14px;color:var(--ink)} .chip span{font-size:12px;color:var(--muted)}
+.chip-a{left:-64px;top:300px} .chip-b{right:-64px;bottom:210px}
+/* strip */
+.strip{border-top:1px solid rgba(148,163,184,.15)}
+.strip .wrap{display:flex;align-items:center;justify-content:center;gap:12px 28px;flex-wrap:wrap;padding-top:24px;padding-bottom:24px;color:var(--muted);font-size:14px}
+/* sections */
+.section{padding:110px 0}
+.head{display:flex;flex-direction:column;gap:14px;max-width:680px;margin-bottom:44px}
+.head h2,.split h2{font-size:clamp(34px,4.4vw,48px);line-height:1.1;letter-spacing:-1px}
+/* carousel */
+.carousel{position:relative;overflow:hidden;padding:24px 0 8px;margin:0 -24px}
+.track{position:relative;left:50%;display:flex;gap:24px;width:max-content;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.fcard{flex:none;width:340px;min-height:300px;border-radius:26px;padding:32px;display:flex;flex-direction:column;gap:14px;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(148,163,184,.18);transform:scale(.9);opacity:.45;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .7s,background .7s,border-color .7s}
+.fcard.on{transform:scale(1);opacity:1;background:rgba(129,140,248,.1);border-color:rgba(129,140,248,.6)}
+.fcard h3{font-size:24px;font-weight:500;color:var(--ink)} .fcard p{font-size:15px;color:var(--muted)}
+.fico{position:relative;width:76px;height:76px} .fico svg:first-child{position:absolute;inset:0} .fico svg:last-child{position:absolute;left:21px;top:21px}
+.controls{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:20px}
+.dots{display:flex;gap:8px}
+.dot{width:8px;height:8px;padding:0;border:0;border-radius:4px;background:rgba(148,163,184,.4);cursor:pointer;transition:width .4s,background .4s}
+.dot.on{width:28px;background:var(--teal)}
+/* privacy */
+.split{display:flex;gap:56px;flex-wrap:wrap;align-items:center}
+.split > div{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.split p.big{font-size:17px;color:var(--text2)}
+.checklist{background:#fff;border:1px solid var(--border);border-radius:26px;padding:12px 28px;gap:0 !important}
+.checklist .row{display:flex;gap:14px;padding:18px 0;border-bottom:1px solid var(--border)} .checklist .row > svg{flex:none;margin-top:3px} .checklist .row:last-child{border-bottom:0}
+.checklist strong{display:block;font-size:16px} .checklist span{font-size:15px;color:var(--text2)}
+.diagram{flex:1 1 100% !important;align-items:center} .diagram svg{max-width:100%;height:auto}
+/* steps */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:28px}
+.step{display:flex;flex-direction:column;gap:10px} .step h3{font-size:22px;font-weight:500} .step p{font-size:15px;color:var(--text2)}
+.step-top{display:flex;align-items:center;justify-content:space-between}
+.step-ico{width:56px;height:56px;border-radius:16px;background:#EEF0FF;border:1px solid #C7CBFA;display:flex;align-items:center;justify-content:center}
+/* download */
+.download .wrap{display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+.download h2{font-size:clamp(38px,5vw,52px);letter-spacing:-1px}
+.download .lead{text-align:center}
+.radar-small{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center} .radar-small > svg:first-child{position:absolute;inset:0}
+.sweep-small{transform-origin:110px 110px;animation:spin 9s linear infinite}
+.store{min-width:260px;height:64px;border-radius:18px;padding:0 24px;gap:12px}
+.store span{display:flex;flex-direction:column;text-align:left;line-height:1.2} .store small{font-size:12px;font-weight:500} .store b{font-size:18px}
+.fineprint{color:var(--muted)}
+.verify{font-size:14px;color:var(--muted)}
+/* faq */
+.faq .split > div:first-child{flex:1 1 320px} .faq .split > div:last-child{flex:2 1 520px;gap:0}
+.qa{border-top:1px solid var(--border);padding:20px 0} .qa:last-child{border-bottom:1px solid var(--border)}
+.qa summary{cursor:pointer;list-style:none;font-family:Outfit,sans-serif;font-size:19px;font-weight:500;display:flex;justify-content:space-between;gap:16px}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"+";color:var(--indigo-d);font-size:24px;line-height:1} .qa[open] summary::after{content:"–"}
+.qa p{margin-top:10px;font-size:15px;color:var(--text2)}
+/* footer */
+footer{padding:44px 0}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+footer .links{display:flex;gap:22px;flex-wrap:wrap} footer a{color:var(--muted)}
+/* menu */
+.scrim{position:fixed;inset:0;background:rgba(5,8,18,.6);z-index:40;opacity:0;pointer-events:none;transition:opacity .3s}
+.drawer{position:fixed;right:0;top:0;height:100%;width:320px;max-width:86vw;background:#0E1528;border-left:1px solid var(--line);z-index:50;padding:20px;display:flex;flex-direction:column;gap:8px;transform:translateX(105%);transition:transform .38s cubic-bezier(.2,.8,.2,1);color:var(--ink)}
+body.menu-open .scrim{opacity:1;pointer-events:auto} body.menu-open .drawer{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 16px;font-family:Outfit,sans-serif;font-size:20px}
+.menu-link{display:flex;align-items:center;gap:14px;height:56px;padding:0 12px;border-radius:14px;color:var(--ink);text-decoration:none;font-size:17px} .menu-link:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.drawer .mono{margin-top:auto;padding:0 12px 8px;color:var(--muted);font-size:11px}
+@media (max-width:560px){.chip{display:none}.stage{height:690px}.fcard{width:290px}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+<div class="scrim" data-close></div>
+<aside class="drawer" id="menu" aria-label="Menu" aria-hidden="true">
+  <div class="drawer-head"><span>Menu</span><button type="button" class="icon-btn" data-close aria-label="Close menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12 M18 6L6 18"/></svg></button></div>
+      <a href="#features" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 M12 12l7-7"/></svg>Features</a>
+      <a href="#privacy" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/></svg>Privacy</a>
+      <a href="#how" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16 M4 12h10 M4 18h7"/></svg>How it works</a>
+      <a href="#download" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg>Download</a>
+      <a href="#faq" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17h.01 M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/></svg>FAQ</a>
+      <a href="https://github.com/aadvark/Qastellan" class="menu-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3 M16 9l4 3-4 3 M13 6l-2 12"/></svg>Source code on GitHub</a>
+  <span class="mono">FREE · OPEN SOURCE · NO ADS</span>
+</aside>
+
+<header class="hero dark">
+  <svg class="hero-cubes" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs><linearGradient id="fade" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".55"/><stop offset=".9" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="1440" height="900"><rect width="1440" height="900" fill="url(#fade)"/></mask></defs>
+    <path id="cubes" mask="url(#m)"/>
+  </svg>
+  <nav class="wrap topbar" aria-label="Main">
+    <a class="brand" href="#"><svg width="34" height="34" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 8 L100 21 V55 C100 81 83 99 60 112 C37 99 20 81 20 55 V21 Z" fill="#818CF8"/><circle cx="60" cy="57" r="18" fill="none" stroke="#0A1020" stroke-width="10"/><path d="M71.6 70.8 L78.6 79.2" stroke="#0A1020" stroke-width="11" stroke-linecap="round"/></svg>Qastellan</a>
+    <div class="topbar-right">
+      <a class="btn btn-primary btn-small" href="#download">Download</a>
+      <button type="button" class="icon-btn" id="menu-btn" aria-label="Open menu" aria-controls="menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16 M4 12h16 M4 17h10"/></svg></button>
+    </div>
+  </nav>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="pill mono">FREE · OPEN SOURCE · ANDROID</span>
+      <h1>Guard your phone.<br>Keep your apps honest.</h1>
+      <p class="lead">Qastellan finds malware, risky apps and hidden trackers on your Android phone. Everything is checked on the device itself, so nothing you have ever leaves it.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#download"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg>Download free</a>
+        <a class="btn btn-ghost" href="https://github.com/aadvark/Qastellan">Read the code</a>
+      </div>
+      <div class="ticks"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg> No ads</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg> No account</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg> No data uploaded</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg> Made in Singapore</span></div>
+    </div>
+    <div class="hero-visual">
+      <div class="stage">
+        <svg class="radar" viewBox="0 0 460 700" aria-hidden="true">
+          <circle cx="230" cy="350" r="225" fill="none" stroke="#818CF8" stroke-opacity=".25" stroke-dasharray="2 8"/>
+          <circle cx="230" cy="350" r="185" fill="none" stroke="#818CF8" stroke-opacity=".18"/>
+          <g class="sweep"><circle cx="230" cy="350" r="185" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-dasharray="90 1072" stroke-opacity=".8"/><circle cx="415" cy="350" r="4" fill="#2DD4BF"/></g>
+        </svg>
+        <div class="phone" role="img" aria-label="Qastellan home screen showing You're protected"><div class="phone-inner"><div class="phone-screen">
+  <svg class="phone-cubes" viewBox="0 0 390 844" aria-hidden="true"><path d="M-31 844L-16 853L-16 871L-31 880L-47 871L-47 853L-31 844M-31 862L-31 880M-31 862L-47 853M-31 862L-16 853M0 844L16 853L16 871L0 880L-16 871L-16 853L-0 844M0 862L0 880M0 862L-16 853M0 862L16 853M31 844L47 853L47 871L31 880L16 871L16 853L31 844M31 862L31 880M31 862L16 853M31 862L47 853M62 844L78 853L78 871L62 880L47 871L47 853L62 844M62 862L62 880M62 862L47 853M62 862L78 853M94 844L109 853L109 871L94 880L78 871L78 853L94 844M94 862L94 880M94 862L78 853M94 862L109 853M125 844L140 853L140 871L125 880L109 871L109 853L125 844M125 862L125 880M125 862L109 853M125 862L140 853M156 844L171 853L171 871L156 880L140 871L140 853L156 844M156 862L156 880M156 862L140 853M156 862L171 853M187 844L203 853L203 871L187 880L171 871L171 853L187 844M187 862L187 880M187 862L171 853M187 862L203 853M218 844L234 853L234 871L218 880L203 871L203 853L218 844M218 862L218 880M218 862L203 853M218 862L234 853M249 844L265 853L265 871L249 880L234 871L234 853L249 844M249 862L249 880M249 862L234 853M249 862L265 853M281 844L296 853L296 871L281 880L265 871L265 853L281 844M281 862L281 880M281 862L265 853M281 862L296 853M312 844L327 853L327 871L312 880L296 871L296 853L312 844M312 862L312 880M312 862L296 853M312 862L327 853M343 844L359 853L359 871L343 880L327 871L327 853L343 844M343 862L343 880M343 862L327 853M343 862L359 853M374 844L390 853L390 871L374 880L359 871L359 853L374 844M374 862L374 880M374 862L359 853M374 862L390 853M405 844L421 853L421 871L405 880L390 871L390 853L405 844M405 862L405 880M405 862L390 853M405 862L421 853M-16 817L0 826L0 844L-16 853L-31 844L-31 826L-16 817M-16 835L-16 853M-16 835L-31 826M-16 835L-0 826M16 817L31 826L31 844L16 853L-0 844L0 826L16 817M16 835L16 853M16 835L0 826M16 835L31 826M47 817L62 826L62 844L47 853L31 844L31 826L47 817M47 835L47 853M47 835L31 826M47 835L62 826M78 817L94 826L94 844L78 853L62 844L62 826L78 817M78 835L78 853M78 835L62 826M78 835L94 826M109 817L125 826L125 844L109 853L94 844L94 826L109 817M109 835L109 853M109 835L94 826M109 835L125 826M140 817L156 826L156 844L140 853L125 844L125 826L140 817M140 835L140 853M140 835L125 826M140 835L156 826M171 817L187 826L187 844L171 853L156 844L156 826L171 817M171 835L171 853M171 835L156 826M171 835L187 826M203 817L218 826L218 844L203 853L187 844L187 826L203 817M203 835L203 853M203 835L187 826M203 835L218 826M234 817L249 826L249 844L234 853L218 844L218 826L234 817M234 835L234 853M234 835L218 826M234 835L249 826M265 817L281 826L281 844L265 853L249 844L249 826L265 817M265 835L265 853M265 835L249 826M265 835L281 826M296 817L312 826L312 844L296 853L281 844L281 826L296 817M296 835L296 853M296 835L281 826M296 835L312 826M327 817L343 826L343 844L327 853L312 844L312 826L327 817M327 835L327 853M327 835L312 826M327 835L343 826M359 817L374 826L374 844L359 853L343 844L343 826L359 817M359 835L359 853M359 835L343 826M359 835L374 826M390 817L405 826L405 844L390 853L374 844L374 826L390 817M390 835L390 853M390 835L374 826M390 835L405 826M421 817L436 826L436 844L421 853L405 844L405 826L421 817M421 835L421 853M421 835L405 826M421 835L436 826M-31 790L-16 799L-16 817L-31 826L-47 817L-47 799L-31 790M-31 808L-31 826M-31 808L-47 799M-31 808L-16 799M0 790L16 799L16 817L0 826L-16 817L-16 799L-0 790M0 808L0 826M0 808L-16 799M0 808L16 799M31 790L47 799L47 817L31 826L16 817L16 799L31 790M31 808L31 826M31 808L16 799M31 808L47 799M62 790L78 799L78 817L62 826L47 817L47 799L62 790M62 808L62 826M62 808L47 799M62 808L78 799M94 790L109 799L109 817L94 826L78 817L78 799L94 790M94 808L94 826M94 808L78 799M94 808L109 799M125 790L140 799L140 817L125 826L109 817L109 799L125 790M125 808L125 826M125 808L109 799M125 808L140 799M156 790L171 799L171 817L156 826L140 817L140 799L156 790M156 808L156 826M156 808L140 799M156 808L171 799M187 790L203 799L203 817L187 826L171 817L171 799L187 790M187 808L187 826M187 808L171 799M187 808L203 799M218 790L234 799L234 817L218 826L203 817L203 799L218 790M218 808L218 826M218 808L203 799M218 808L234 799M249 790L265 799L265 817L249 826L234 817L234 799L249 790M249 808L249 826M249 808L234 799M249 808L265 799M281 790L296 799L296 817L281 826L265 817L265 799L281 790M281 808L281 826M281 808L265 799M281 808L296 799M312 790L327 799L327 817L312 826L296 817L296 799L312 790M312 808L312 826M312 808L296 799M312 808L327 799M343 790L359 799L359 817L343 826L327 817L327 799L343 790M343 808L343 826M343 808L327 799M343 808L359 799M374 790L390 799L390 817L374 826L359 817L359 799L374 790M374 808L374 826M374 808L359 799M374 808L390 799M405 790L421 799L421 817L405 826L390 817L390 799L405 790M405 808L405 826M405 808L390 799M405 808L421 799M-16 763L0 772L0 790L-16 799L-31 790L-31 772L-16 763M-16 781L-16 799M-16 781L-31 772M-16 781L-0 772M16 763L31 772L31 790L16 799L-0 790L0 772L16 763M16 781L16 799M16 781L0 772M16 781L31 772M47 763L62 772L62 790L47 799L31 790L31 772L47 763M47 781L47 799M47 781L31 772M47 781L62 772M78 763L94 772L94 790L78 799L62 790L62 772L78 763M78 781L78 799M78 781L62 772M78 781L94 772M109 763L125 772L125 790L109 799L94 790L94 772L109 763M109 781L109 799M109 781L94 772M109 781L125 772M140 763L156 772L156 790L140 799L125 790L125 772L140 763M140 781L140 799M140 781L125 772M140 781L156 772M171 763L187 772L187 790L171 799L156 790L156 772L171 763M171 781L171 799M171 781L156 772M171 781L187 772M203 763L218 772L218 790L203 799L187 790L187 772L203 763M203 781L203 799M203 781L187 772M203 781L218 772M234 763L249 772L249 790L234 799L218 790L218 772L234 763M234 781L234 799M234 781L218 772M234 781L249 772M265 763L281 772L281 790L265 799L249 790L249 772L265 763M265 781L265 799M265 781L249 772M265 781L281 772M296 763L312 772L312 790L296 799L281 790L281 772L296 763M296 781L296 799M296 781L281 772M296 781L312 772M327 763L343 772L343 790L327 799L312 790L312 772L327 763M327 781L327 799M327 781L312 772M327 781L343 772M359 763L374 772L374 790L359 799L343 790L343 772L359 763M359 781L359 799M359 781L343 772M359 781L374 772M390 763L405 772L405 790L390 799L374 790L374 772L390 763M390 781L390 799M390 781L374 772M390 781L405 772M421 763L436 772L436 790L421 799L405 790L405 772L421 763M421 781L421 799M421 781L405 772M421 781L436 772M-31 736L-16 745L-16 763L-31 772L-47 763L-47 745L-31 736M-31 754L-31 772M-31 754L-47 745M-31 754L-16 745M0 736L16 745L16 763L0 772L-16 763L-16 745L-0 736M0 754L0 772M0 754L-16 745M0 754L16 745M31 736L47 745L47 763L31 772L16 763L16 745L31 736M31 754L31 772M31 754L16 745M31 754L47 745M62 736L78 745L78 763L62 772L47 763L47 745L62 736M62 754L62 772M62 754L47 745M62 754L78 745M94 736L109 745L109 763L94 772L78 763L78 745L94 736M94 754L94 772M94 754L78 745M94 754L109 745M125 736L140 745L140 763L125 772L109 763L109 745L125 736M125 754L125 772M125 754L109 745M125 754L140 745M156 736L171 745L171 763L156 772L140 763L140 745L156 736M156 754L156 772M156 754L140 745M156 754L171 745M187 736L203 745L203 763L187 772L171 763L171 745L187 736M187 754L187 772M187 754L171 745M187 754L203 745M218 736L234 745L234 763L218 772L203 763L203 745L218 736M218 754L218 772M218 754L203 745M218 754L234 745M249 736L265 745L265 763L249 772L234 763L234 745L249 736M249 754L249 772M249 754L234 745M249 754L265 745M281 736L296 745L296 763L281 772L265 763L265 745L281 736M281 754L281 772M281 754L265 745M281 754L296 745M312 736L327 745L327 763L312 772L296 763L296 745L312 736M312 754L312 772M312 754L296 745M312 754L327 745M343 736L359 745L359 763L343 772L327 763L327 745L343 736M343 754L343 772M343 754L327 745M343 754L359 745M374 736L390 745L390 763L374 772L359 763L359 745L374 736M374 754L374 772M374 754L359 745M374 754L390 745M405 736L421 745L421 763L405 772L390 763L390 745L405 736M405 754L405 772M405 754L390 745M405 754L421 745M-16 709L0 718L0 736L-16 745L-31 736L-31 718L-16 709M-16 727L-16 745M-16 727L-31 718M-16 727L-0 718M16 709L31 718L31 736L16 745L-0 736L0 718L16 709M16 727L16 745M16 727L0 718M16 727L31 718M47 709L62 718L62 736L47 745L31 736L31 718L47 709M47 727L47 745M47 727L31 718M47 727L62 718M78 709L94 718L94 736L78 745L62 736L62 718L78 709M78 727L78 745M78 727L62 718M78 727L94 718M109 709L125 718L125 736L109 745L94 736L94 718L109 709M109 727L109 745M109 727L94 718M109 727L125 718M140 709L156 718L156 736L140 745L125 736L125 718L140 709M140 727L140 745M140 727L125 718M140 727L156 718M171 709L187 718L187 736L171 745L156 736L156 718L171 709M171 727L171 745M171 727L156 718M171 727L187 718M203 709L218 718L218 736L203 745L187 736L187 718L203 709M203 727L203 745M203 727L187 718M203 727L218 718M234 709L249 718L249 736L234 745L218 736L218 718L234 709M234 727L234 745M234 727L218 718M234 727L249 718M265 709L281 718L281 736L265 745L249 736L249 718L265 709M265 727L265 745M265 727L249 718M265 727L281 718M296 709L312 718L312 736L296 745L281 736L281 718L296 709M296 727L296 745M296 727L281 718M296 727L312 718M327 709L343 718L343 736L327 745L312 736L312 718L327 709M327 727L327 745M327 727L312 718M327 727L343 718M359 709L374 718L374 736L359 745L343 736L343 718L359 709M359 727L359 745M359 727L343 718M359 727L374 718M390 709L405 718L405 736L390 745L374 736L374 718L390 709M390 727L390 745M390 727L374 718M390 727L405 718M421 709L436 718L436 736L421 745L405 736L405 718L421 709M421 727L421 745M421 727L405 718M421 727L436 718M-31 682L-16 691L-16 709L-31 718L-47 709L-47 691L-31 682M-31 700L-31 718M-31 700L-47 691M-31 700L-16 691M0 682L16 691L16 709L0 718L-16 709L-16 691L-0 682M0 700L0 718M0 700L-16 691M0 700L16 691M31 682L47 691L47 709L31 718L16 709L16 691L31 682M31 700L31 718M31 700L16 691M31 700L47 691M62 682L78 691L78 709L62 718L47 709L47 691L62 682M62 700L62 718M62 700L47 691M62 700L78 691M94 682L109 691L109 709L94 718L78 709L78 691L94 682M94 700L94 718M94 700L78 691M94 700L109 691M125 682L140 691L140 709L125 718L109 709L109 691L125 682M125 700L125 718M125 700L109 691M125 700L140 691M156 682L171 691L171 709L156 718L140 709L140 691L156 682M156 700L156 718M156 700L140 691M156 700L171 691M187 682L203 691L203 709L187 718L171 709L171 691L187 682M187 700L187 718M187 700L171 691M187 700L203 691M218 682L234 691L234 709L218 718L203 709L203 691L218 682M218 700L218 718M218 700L203 691M218 700L234 691M249 682L265 691L265 709L249 718L234 709L234 691L249 682M249 700L249 718M249 700L234 691M249 700L265 691M281 682L296 691L296 709L281 718L265 709L265 691L281 682M281 700L281 718M281 700L265 691M281 700L296 691M312 682L327 691L327 709L312 718L296 709L296 691L312 682M312 700L312 718M312 700L296 691M312 700L327 691M343 682L359 691L359 709L343 718L327 709L327 691L343 682M343 700L343 718M343 700L327 691M343 700L359 691M374 682L390 691L390 709L374 718L359 709L359 691L374 682M374 700L374 718M374 700L359 691M374 700L390 691M405 682L421 691L421 709L405 718L390 709L390 691L405 682M405 700L405 718M405 700L390 691M405 700L421 691M-16 655L0 664L0 682L-16 691L-31 682L-31 664L-16 655M-16 673L-16 691M-16 673L-31 664M-16 673L-0 664M16 655L31 664L31 682L16 691L-0 682L0 664L16 655M16 673L16 691M16 673L0 664M16 673L31 664M47 655L62 664L62 682L47 691L31 682L31 664L47 655M47 673L47 691M47 673L31 664M47 673L62 664M78 655L94 664L94 682L78 691L62 682L62 664L78 655M78 673L78 691M78 673L62 664M78 673L94 664M109 655L125 664L125 682L109 691L94 682L94 664L109 655M109 673L109 691M109 673L94 664M109 673L125 664M140 655L156 664L156 682L140 691L125 682L125 664L140 655M140 673L140 691M140 673L125 664M140 673L156 664M171 655L187 664L187 682L171 691L156 682L156 664L171 655M171 673L171 691M171 673L156 664M171 673L187 664M203 655L218 664L218 682L203 691L187 682L187 664L203 655M203 673L203 691M203 673L187 664M203 673L218 664M234 655L249 664L249 682L234 691L218 682L218 664L234 655M234 673L234 691M234 673L218 664M234 673L249 664M265 655L281 664L281 682L265 691L249 682L249 664L265 655M265 673L265 691M265 673L249 664M265 673L281 664M296 655L312 664L312 682L296 691L281 682L281 664L296 655M296 673L296 691M296 673L281 664M296 673L312 664M327 655L343 664L343 682L327 691L312 682L312 664L327 655M327 673L327 691M327 673L312 664M327 673L343 664M359 655L374 664L374 682L359 691L343 682L343 664L359 655M359 673L359 691M359 673L343 664M359 673L374 664M390 655L405 664L405 682L390 691L374 682L374 664L390 655M390 673L390 691M390 673L374 664M390 673L405 664M421 655L436 664L436 682L421 691L405 682L405 664L421 655M421 673L421 691M421 673L405 664M421 673L436 664M-31 628L-16 637L-16 655L-31 664L-47 655L-47 637L-31 628M-31 646L-31 664M-31 646L-47 637M-31 646L-16 637M0 628L16 637L16 655L0 664L-16 655L-16 637L-0 628M0 646L0 664M0 646L-16 637M0 646L16 637M31 628L47 637L47 655L31 664L16 655L16 637L31 628M31 646L31 664M31 646L16 637M31 646L47 637M62 628L78 637L78 655L62 664L47 655L47 637L62 628M62 646L62 664M62 646L47 637M62 646L78 637M94 628L109 637L109 655L94 664L78 655L78 637L94 628M94 646L94 664M94 646L78 637M94 646L109 637M125 628L140 637L140 655L125 664L109 655L109 637L125 628M125 646L125 664M125 646L109 637M125 646L140 637M156 628L171 637L171 655L156 664L140 655L140 637L156 628M156 646L156 664M156 646L140 637M156 646L171 637M187 628L203 637L203 655L187 664L171 655L171 637L187 628M187 646L187 664M187 646L171 637M187 646L203 637M218 628L234 637L234 655L218 664L203 655L203 637L218 628M218 646L218 664M218 646L203 637M218 646L234 637M249 628L265 637L265 655L249 664L234 655L234 637L249 628M249 646L249 664M249 646L234 637M249 646L265 637M281 628L296 637L296 655L281 664L265 655L265 637L281 628M281 646L281 664M281 646L265 637M281 646L296 637M312 628L327 637L327 655L312 664L296 655L296 637L312 628M312 646L312 664M312 646L296 637M312 646L327 637M343 628L359 637L359 655L343 664L327 655L327 637L343 628M343 646L343 664M343 646L327 637M343 646L359 637M374 628L390 637L390 655L374 664L359 655L359 637L374 628M374 646L374 664M374 646L359 637M374 646L390 637M405 628L421 637L421 655L405 664L390 655L390 637L405 628M405 646L405 664M405 646L390 637M405 646L421 637M-16 601L0 610L0 628L-16 637L-31 628L-31 610L-16 601M-16 619L-16 637M-16 619L-31 610M-16 619L-0 610M16 601L31 610L31 628L16 637L-0 628L0 610L16 601M16 619L16 637M16 619L0 610M16 619L31 610M47 601L62 610L62 628L47 637L31 628L31 610L47 601M47 619L47 637M47 619L31 610M47 619L62 610M78 601L94 610L94 628L78 637L62 628L62 610L78 601M78 619L78 637M78 619L62 610M78 619L94 610M109 601L125 610L125 628L109 637L94 628L94 610L109 601M109 619L109 637M109 619L94 610M109 619L125 610M140 601L156 610L156 628L140 637L125 628L125 610L140 601M140 619L140 637M140 619L125 610M140 619L156 610M171 601L187 610L187 628L171 637L156 628L156 610L171 601M171 619L171 637M171 619L156 610M171 619L187 610M203 601L218 610L218 628L203 637L187 628L187 610L203 601M203 619L203 637M203 619L187 610M203 619L218 610M234 601L249 610L249 628L234 637L218 628L218 610L234 601M234 619L234 637M234 619L218 610M234 619L249 610M265 601L281 610L281 628L265 637L249 628L249 610L265 601M265 619L265 637M265 619L249 610M265 619L281 610M296 601L312 610L312 628L296 637L281 628L281 610L296 601M296 619L296 637M296 619L281 610M296 619L312 610M327 601L343 610L343 628L327 637L312 628L312 610L327 601M327 619L327 637M327 619L312 610M327 619L343 610M359 601L374 610L374 628L359 637L343 628L343 610L359 601M359 619L359 637M359 619L343 610M359 619L374 610M390 601L405 610L405 628L390 637L374 628L374 610L390 601M390 619L390 637M390 619L374 610M390 619L405 610M421 601L436 610L436 628L421 637L405 628L405 610L421 601M421 619L421 637M421 619L405 610M421 619L436 610M-31 574L-16 583L-16 601L-31 610L-47 601L-47 583L-31 574M-31 592L-31 610M-31 592L-47 583M-31 592L-16 583M0 574L16 583L16 601L0 610L-16 601L-16 583L-0 574M0 592L0 610M0 592L-16 583M0 592L16 583M31 574L47 583L47 601L31 610L16 601L16 583L31 574M31 592L31 610M31 592L16 583M31 592L47 583M62 574L78 583L78 601L62 610L47 601L47 583L62 574M62 592L62 610M62 592L47 583M62 592L78 583M94 574L109 583L109 601L94 610L78 601L78 583L94 574M94 592L94 610M94 592L78 583M94 592L109 583M125 574L140 583L140 601L125 610L109 601L109 583L125 574M125 592L125 610M125 592L109 583M125 592L140 583M156 574L171 583L171 601L156 610L140 601L140 583L156 574M156 592L156 610M156 592L140 583M156 592L171 583M187 574L203 583L203 601L187 610L171 601L171 583L187 574M187 592L187 610M187 592L171 583M187 592L203 583M218 574L234 583L234 601L218 610L203 601L203 583L218 574M218 592L218 610M218 592L203 583M218 592L234 583M249 574L265 583L265 601L249 610L234 601L234 583L249 574M249 592L249 610M249 592L234 583M249 592L265 583M281 574L296 583L296 601L281 610L265 601L265 583L281 574M281 592L281 610M281 592L265 583M281 592L296 583M312 574L327 583L327 601L312 610L296 601L296 583L312 574M312 592L312 610M312 592L296 583M312 592L327 583M343 574L359 583L359 601L343 610L327 601L327 583L343 574M343 592L343 610M343 592L327 583M343 592L359 583M374 574L390 583L390 601L374 610L359 601L359 583L374 574M374 592L374 610M374 592L359 583M374 592L390 583M405 574L421 583L421 601L405 610L390 601L390 583L405 574M405 592L405 610M405 592L390 583M405 592L421 583M-16 547L0 556L0 574L-16 583L-31 574L-31 556L-16 547M-16 565L-16 583M-16 565L-31 556M-16 565L-0 556M16 547L31 556L31 574L16 583L-0 574L0 556L16 547M16 565L16 583M16 565L0 556M16 565L31 556M47 547L62 556L62 574L47 583L31 574L31 556L47 547M47 565L47 583M47 565L31 556M47 565L62 556M78 547L94 556L94 574L78 583L62 574L62 556L78 547M78 565L78 583M78 565L62 556M78 565L94 556M109 547L125 556L125 574L109 583L94 574L94 556L109 547M109 565L109 583M109 565L94 556M109 565L125 556M140 547L156 556L156 574L140 583L125 574L125 556L140 547M140 565L140 583M140 565L125 556M140 565L156 556M171 547L187 556L187 574L171 583L156 574L156 556L171 547M171 565L171 583M171 565L156 556M171 565L187 556M203 547L218 556L218 574L203 583L187 574L187 556L203 547M203 565L203 583M203 565L187 556M203 565L218 556M234 547L249 556L249 574L234 583L218 574L218 556L234 547M234 565L234 583M234 565L218 556M234 565L249 556M265 547L281 556L281 574L265 583L249 574L249 556L265 547M265 565L265 583M265 565L249 556M265 565L281 556M296 547L312 556L312 574L296 583L281 574L281 556L296 547M296 565L296 583M296 565L281 556M296 565L312 556M327 547L343 556L343 574L327 583L312 574L312 556L327 547M327 565L327 583M327 565L312 556M327 565L343 556M359 547L374 556L374 574L359 583L343 574L343 556L359 547M359 565L359 583M359 565L343 556M359 565L374 556M390 547L405 556L405 574L390 583L374 574L374 556L390 547M390 565L390 583M390 565L374 556M390 565L405 556M421 547L436 556L436 574L421 583L405 574L405 556L421 547M421 565L421 583M421 565L405 556M421 565L436 556M-31 520L-16 529L-16 547L-31 556L-47 547L-47 529L-31 520M-31 538L-31 556M-31 538L-47 529M-31 538L-16 529M0 520L16 529L16 547L0 556L-16 547L-16 529L-0 520M0 538L0 556M0 538L-16 529M0 538L16 529M31 520L47 529L47 547L31 556L16 547L16 529L31 520M31 538L31 556M31 538L16 529M31 538L47 529M62 520L78 529L78 547L62 556L47 547L47 529L62 520M62 538L62 556M62 538L47 529M62 538L78 529M94 520L109 529L109 547L94 556L78 547L78 529L94 520M94 538L94 556M94 538L78 529M94 538L109 529M125 520L140 529L140 547L125 556L109 547L109 529L125 520M125 538L125 556M125 538L109 529M125 538L140 529M156 520L171 529L171 547L156 556L140 547L140 529L156 520M156 538L156 556M156 538L140 529M156 538L171 529M187 520L203 529L203 547L187 556L171 547L171 529L187 520M187 538L187 556M187 538L171 529M187 538L203 529M218 520L234 529L234 547L218 556L203 547L203 529L218 520M218 538L218 556M218 538L203 529M218 538L234 529M249 520L265 529L265 547L249 556L234 547L234 529L249 520M249 538L249 556M249 538L234 529M249 538L265 529M281 520L296 529L296 547L281 556L265 547L265 529L281 520M281 538L281 556M281 538L265 529M281 538L296 529M312 520L327 529L327 547L312 556L296 547L296 529L312 520M312 538L312 556M312 538L296 529M312 538L327 529M343 520L359 529L359 547L343 556L327 547L327 529L343 520M343 538L343 556M343 538L327 529M343 538L359 529M374 520L390 529L390 547L374 556L359 547L359 529L374 520M374 538L374 556M374 538L359 529M374 538L390 529M405 520L421 529L421 547L405 556L390 547L390 529L405 520M405 538L405 556M405 538L390 529M405 538L421 529M-16 493L0 502L0 520L-16 529L-31 520L-31 502L-16 493M-16 511L-16 529M-16 511L-31 502M-16 511L-0 502M16 493L31 502L31 520L16 529L-0 520L0 502L16 493M16 511L16 529M16 511L0 502M16 511L31 502M47 493L62 502L62 520L47 529L31 520L31 502L47 493M47 511L47 529M47 511L31 502M47 511L62 502M78 493L94 502L94 520L78 529L62 520L62 502L78 493M78 511L78 529M78 511L62 502M78 511L94 502M109 493L125 502L125 520L109 529L94 520L94 502L109 493M109 511L109 529M109 511L94 502M109 511L125 502M140 493L156 502L156 520L140 529L125 520L125 502L140 493M140 511L140 529M140 511L125 502M140 511L156 502M171 493L187 502L187 520L171 529L156 520L156 502L171 493M171 511L171 529M171 511L156 502M171 511L187 502M203 493L218 502L218 520L203 529L187 520L187 502L203 493M203 511L203 529M203 511L187 502M203 511L218 502M234 493L249 502L249 520L234 529L218 520L218 502L234 493M234 511L234 529M234 511L218 502M234 511L249 502M265 493L281 502L281 520L265 529L249 520L249 502L265 493M265 511L265 529M265 511L249 502M265 511L281 502M296 493L312 502L312 520L296 529L281 520L281 502L296 493M296 511L296 529M296 511L281 502M296 511L312 502M327 493L343 502L343 520L327 529L312 520L312 502L327 493M327 511L327 529M327 511L312 502M327 511L343 502M359 493L374 502L374 520L359 529L343 520L343 502L359 493M359 511L359 529M359 511L343 502M359 511L374 502M390 493L405 502L405 520L390 529L374 520L374 502L390 493M390 511L390 529M390 511L374 502M390 511L405 502M421 493L436 502L436 520L421 529L405 520L405 502L421 493M421 511L421 529M421 511L405 502M421 511L436 502M-31 466L-16 475L-16 493L-31 502L-47 493L-47 475L-31 466M-31 484L-31 502M-31 484L-47 475M-31 484L-16 475M0 466L16 475L16 493L0 502L-16 493L-16 475L-0 466M0 484L0 502M0 484L-16 475M0 484L16 475M31 466L47 475L47 493L31 502L16 493L16 475L31 466M31 484L31 502M31 484L16 475M31 484L47 475M62 466L78 475L78 493L62 502L47 493L47 475L62 466M62 484L62 502M62 484L47 475M62 484L78 475M94 466L109 475L109 493L94 502L78 493L78 475L94 466M94 484L94 502M94 484L78 475M94 484L109 475M125 466L140 475L140 493L125 502L109 493L109 475L125 466M125 484L125 502M125 484L109 475M125 484L140 475M156 466L171 475L171 493L156 502L140 493L140 475L156 466M156 484L156 502M156 484L140 475M156 484L171 475M187 466L203 475L203 493L187 502L171 493L171 475L187 466M187 484L187 502M187 484L171 475M187 484L203 475M218 466L234 475L234 493L218 502L203 493L203 475L218 466M218 484L218 502M218 484L203 475M218 484L234 475M249 466L265 475L265 493L249 502L234 493L234 475L249 466M249 484L249 502M249 484L234 475M249 484L265 475M281 466L296 475L296 493L281 502L265 493L265 475L281 466M281 484L281 502M281 484L265 475M281 484L296 475M312 466L327 475L327 493L312 502L296 493L296 475L312 466M312 484L312 502M312 484L296 475M312 484L327 475M343 466L359 475L359 493L343 502L327 493L327 475L343 466M343 484L343 502M343 484L327 475M343 484L359 475M374 466L390 475L390 493L374 502L359 493L359 475L374 466M374 484L374 502M374 484L359 475M374 484L390 475M405 466L421 475L421 493L405 502L390 493L390 475L405 466M405 484L405 502M405 484L390 475M405 484L421 475M-16 439L0 448L0 466L-16 475L-31 466L-31 448L-16 439M-16 457L-16 475M-16 457L-31 448M-16 457L-0 448M16 439L31 448L31 466L16 475L-0 466L0 448L16 439M16 457L16 475M16 457L0 448M16 457L31 448M47 439L62 448L62 466L47 475L31 466L31 448L47 439M47 457L47 475M47 457L31 448M47 457L62 448M78 439L94 448L94 466L78 475L62 466L62 448L78 439M78 457L78 475M78 457L62 448M78 457L94 448M109 439L125 448L125 466L109 475L94 466L94 448L109 439M109 457L109 475M109 457L94 448M109 457L125 448M140 439L156 448L156 466L140 475L125 466L125 448L140 439M140 457L140 475M140 457L125 448M140 457L156 448M171 439L187 448L187 466L171 475L156 466L156 448L171 439M171 457L171 475M171 457L156 448M171 457L187 448M203 439L218 448L218 466L203 475L187 466L187 448L203 439M203 457L203 475M203 457L187 448M203 457L218 448M234 439L249 448L249 466L234 475L218 466L218 448L234 439M234 457L234 475M234 457L218 448M234 457L249 448M265 439L281 448L281 466L265 475L249 466L249 448L265 439M265 457L265 475M265 457L249 448M265 457L281 448M296 439L312 448L312 466L296 475L281 466L281 448L296 439M296 457L296 475M296 457L281 448M296 457L312 448M327 439L343 448L343 466L327 475L312 466L312 448L327 439M327 457L327 475M327 457L312 448M327 457L343 448M359 439L374 448L374 466L359 475L343 466L343 448L359 439M359 457L359 475M359 457L343 448M359 457L374 448M390 439L405 448L405 466L390 475L374 466L374 448L390 439M390 457L390 475M390 457L374 448M390 457L405 448M421 439L436 448L436 466L421 475L405 466L405 448L421 439M421 457L421 475M421 457L405 448M421 457L436 448M-31 412L-16 421L-16 439L-31 448L-47 439L-47 421L-31 412M-31 430L-31 448M-31 430L-47 421M-31 430L-16 421M0 412L16 421L16 439L0 448L-16 439L-16 421L-0 412M0 430L0 448M0 430L-16 421M0 430L16 421M31 412L47 421L47 439L31 448L16 439L16 421L31 412M31 430L31 448M31 430L16 421M31 430L47 421M62 412L78 421L78 439L62 448L47 439L47 421L62 412M62 430L62 448M62 430L47 421M62 430L78 421M94 412L109 421L109 439L94 448L78 439L78 421L94 412M94 430L94 448M94 430L78 421M94 430L109 421M125 412L140 421L140 439L125 448L109 439L109 421L125 412M125 430L125 448M125 430L109 421M125 430L140 421M156 412L171 421L171 439L156 448L140 439L140 421L156 412M156 430L156 448M156 430L140 421M156 430L171 421M187 412L203 421L203 439L187 448L171 439L171 421L187 412M187 430L187 448M187 430L171 421M187 430L203 421M218 412L234 421L234 439L218 448L203 439L203 421L218 412M218 430L218 448M218 430L203 421M218 430L234 421M249 412L265 421L265 439L249 448L234 439L234 421L249 412M249 430L249 448M249 430L234 421M249 430L265 421M281 412L296 421L296 439L281 448L265 439L265 421L281 412M281 430L281 448M281 430L265 421M281 430L296 421M312 412L327 421L327 439L312 448L296 439L296 421L312 412M312 430L312 448M312 430L296 421M312 430L327 421M343 412L359 421L359 439L343 448L327 439L327 421L343 412M343 430L343 448M343 430L327 421M343 430L359 421M374 412L390 421L390 439L374 448L359 439L359 421L374 412M374 430L374 448M374 430L359 421M374 430L390 421M405 412L421 421L421 439L405 448L390 439L390 421L405 412M405 430L405 448M405 430L390 421M405 430L421 421M-16 385L0 394L0 412L-16 421L-31 412L-31 394L-16 385M-16 403L-16 421M-16 403L-31 394M-16 403L-0 394M16 385L31 394L31 412L16 421L-0 412L0 394L16 385M16 403L16 421M16 403L0 394M16 403L31 394M47 385L62 394L62 412L47 421L31 412L31 394L47 385M47 403L47 421M47 403L31 394M47 403L62 394M78 385L94 394L94 412L78 421L62 412L62 394L78 385M78 403L78 421M78 403L62 394M78 403L94 394M109 385L125 394L125 412L109 421L94 412L94 394L109 385M109 403L109 421M109 403L94 394M109 403L125 394M140 385L156 394L156 412L140 421L125 412L125 394L140 385M140 403L140 421M140 403L125 394M140 403L156 394M171 385L187 394L187 412L171 421L156 412L156 394L171 385M171 403L171 421M171 403L156 394M171 403L187 394M203 385L218 394L218 412L203 421L187 412L187 394L203 385M203 403L203 421M203 403L187 394M203 403L218 394M234 385L249 394L249 412L234 421L218 412L218 394L234 385M234 403L234 421M234 403L218 394M234 403L249 394M265 385L281 394L281 412L265 421L249 412L249 394L265 385M265 403L265 421M265 403L249 394M265 403L281 394M296 385L312 394L312 412L296 421L281 412L281 394L296 385M296 403L296 421M296 403L281 394M296 403L312 394M327 385L343 394L343 412L327 421L312 412L312 394L327 385M327 403L327 421M327 403L312 394M327 403L343 394M359 385L374 394L374 412L359 421L343 412L343 394L359 385M359 403L359 421M359 403L343 394M359 403L374 394M390 385L405 394L405 412L390 421L374 412L374 394L390 385M390 403L390 421M390 403L374 394M390 403L405 394M421 385L436 394L436 412L421 421L405 412L405 394L421 385M421 403L421 421M421 403L405 394M421 403L436 394M-31 358L-16 367L-16 385L-31 394L-47 385L-47 367L-31 358M-31 376L-31 394M-31 376L-47 367M-31 376L-16 367M0 358L16 367L16 385L0 394L-16 385L-16 367L-0 358M0 376L0 394M0 376L-16 367M0 376L16 367M31 358L47 367L47 385L31 394L16 385L16 367L31 358M31 376L31 394M31 376L16 367M31 376L47 367M62 358L78 367L78 385L62 394L47 385L47 367L62 358M62 376L62 394M62 376L47 367M62 376L78 367M94 358L109 367L109 385L94 394L78 385L78 367L94 358M94 376L94 394M94 376L78 367M94 376L109 367M125 358L140 367L140 385L125 394L109 385L109 367L125 358M125 376L125 394M125 376L109 367M125 376L140 367M156 358L171 367L171 385L156 394L140 385L140 367L156 358M156 376L156 394M156 376L140 367M156 376L171 367M187 358L203 367L203 385L187 394L171 385L171 367L187 358M187 376L187 394M187 376L171 367M187 376L203 367M218 358L234 367L234 385L218 394L203 385L203 367L218 358M218 376L218 394M218 376L203 367M218 376L234 367M249 358L265 367L265 385L249 394L234 385L234 367L249 358M249 376L249 394M249 376L234 367M249 376L265 367M281 358L296 367L296 385L281 394L265 385L265 367L281 358M281 376L281 394M281 376L265 367M281 376L296 367M312 358L327 367L327 385L312 394L296 385L296 367L312 358M312 376L312 394M312 376L296 367M312 376L327 367M343 358L359 367L359 385L343 394L327 385L327 367L343 358M343 376L343 394M343 376L327 367M343 376L359 367M374 358L390 367L390 385L374 394L359 385L359 367L374 358M374 376L374 394M374 376L359 367M374 376L390 367M405 358L421 367L421 385L405 394L390 385L390 367L405 358M405 376L405 394M405 376L390 367M405 376L421 367M-16 331L0 340L0 358L-16 367L-31 358L-31 340L-16 331M-16 349L-16 367M-16 349L-31 340M-16 349L-0 340M16 331L31 340L31 358L16 367L-0 358L0 340L16 331M16 349L16 367M16 349L0 340M16 349L31 340M47 331L62 340L62 358L47 367L31 358L31 340L47 331M47 349L47 367M47 349L31 340M47 349L62 340M78 331L94 340L94 358L78 367L62 358L62 340L78 331M78 349L78 367M78 349L62 340M78 349L94 340M109 331L125 340L125 358L109 367L94 358L94 340L109 331M109 349L109 367M109 349L94 340M109 349L125 340M140 331L156 340L156 358L140 367L125 358L125 340L140 331M140 349L140 367M140 349L125 340M140 349L156 340M171 331L187 340L187 358L171 367L156 358L156 340L171 331M171 349L171 367M171 349L156 340M171 349L187 340M203 331L218 340L218 358L203 367L187 358L187 340L203 331M203 349L203 367M203 349L187 340M203 349L218 340M234 331L249 340L249 358L234 367L218 358L218 340L234 331M234 349L234 367M234 349L218 340M234 349L249 340M265 331L281 340L281 358L265 367L249 358L249 340L265 331M265 349L265 367M265 349L249 340M265 349L281 340M296 331L312 340L312 358L296 367L281 358L281 340L296 331M296 349L296 367M296 349L281 340M296 349L312 340M327 331L343 340L343 358L327 367L312 358L312 340L327 331M327 349L327 367M327 349L312 340M327 349L343 340M359 331L374 340L374 358L359 367L343 358L343 340L359 331M359 349L359 367M359 349L343 340M359 349L374 340M390 331L405 340L405 358L390 367L374 358L374 340L390 331M390 349L390 367M390 349L374 340M390 349L405 340M421 331L436 340L436 358L421 367L405 358L405 340L421 331M421 349L421 367M421 349L405 340M421 349L436 340M-31 304L-16 313L-16 331L-31 340L-47 331L-47 313L-31 304M-31 322L-31 340M-31 322L-47 313M-31 322L-16 313M0 304L16 313L16 331L0 340L-16 331L-16 313L-0 304M0 322L0 340M0 322L-16 313M0 322L16 313M31 304L47 313L47 331L31 340L16 331L16 313L31 304M31 322L31 340M31 322L16 313M31 322L47 313M62 304L78 313L78 331L62 340L47 331L47 313L62 304M62 322L62 340M62 322L47 313M62 322L78 313M94 304L109 313L109 331L94 340L78 331L78 313L94 304M94 322L94 340M94 322L78 313M94 322L109 313M125 304L140 313L140 331L125 340L109 331L109 313L125 304M125 322L125 340M125 322L109 313M125 322L140 313M156 304L171 313L171 331L156 340L140 331L140 313L156 304M156 322L156 340M156 322L140 313M156 322L171 313M187 304L203 313L203 331L187 340L171 331L171 313L187 304M187 322L187 340M187 322L171 313M187 322L203 313M218 304L234 313L234 331L218 340L203 331L203 313L218 304M218 322L218 340M218 322L203 313M218 322L234 313M249 304L265 313L265 331L249 340L234 331L234 313L249 304M249 322L249 340M249 322L234 313M249 322L265 313M281 304L296 313L296 331L281 340L265 331L265 313L281 304M281 322L281 340M281 322L265 313M281 322L296 313M312 304L327 313L327 331L312 340L296 331L296 313L312 304M312 322L312 340M312 322L296 313M312 322L327 313M343 304L359 313L359 331L343 340L327 331L327 313L343 304M343 322L343 340M343 322L327 313M343 322L359 313M374 304L390 313L390 331L374 340L359 331L359 313L374 304M374 322L374 340M374 322L359 313M374 322L390 313M405 304L421 313L421 331L405 340L390 331L390 313L405 304M405 322L405 340M405 322L390 313M405 322L421 313M-16 277L0 286L0 304L-16 313L-31 304L-31 286L-16 277M-16 295L-16 313M-16 295L-31 286M-16 295L-0 286M16 277L31 286L31 304L16 313L-0 304L0 286L16 277M16 295L16 313M16 295L0 286M16 295L31 286M47 277L62 286L62 304L47 313L31 304L31 286L47 277M47 295L47 313M47 295L31 286M47 295L62 286M78 277L94 286L94 304L78 313L62 304L62 286L78 277M78 295L78 313M78 295L62 286M78 295L94 286M109 277L125 286L125 304L109 313L94 304L94 286L109 277M109 295L109 313M109 295L94 286M109 295L125 286M140 277L156 286L156 304L140 313L125 304L125 286L140 277M140 295L140 313M140 295L125 286M140 295L156 286M171 277L187 286L187 304L171 313L156 304L156 286L171 277M171 295L171 313M171 295L156 286M171 295L187 286M203 277L218 286L218 304L203 313L187 304L187 286L203 277M203 295L203 313M203 295L187 286M203 295L218 286M234 277L249 286L249 304L234 313L218 304L218 286L234 277M234 295L234 313M234 295L218 286M234 295L249 286M265 277L281 286L281 304L265 313L249 304L249 286L265 277M265 295L265 313M265 295L249 286M265 295L281 286M296 277L312 286L312 304L296 313L281 304L281 286L296 277M296 295L296 313M296 295L281 286M296 295L312 286M327 277L343 286L343 304L327 313L312 304L312 286L327 277M327 295L327 313M327 295L312 286M327 295L343 286M359 277L374 286L374 304L359 313L343 304L343 286L359 277M359 295L359 313M359 295L343 286M359 295L374 286M390 277L405 286L405 304L390 313L374 304L374 286L390 277M390 295L390 313M390 295L374 286M390 295L405 286M421 277L436 286L436 304L421 313L405 304L405 286L421 277M421 295L421 313M421 295L405 286M421 295L436 286M-31 250L-16 259L-16 277L-31 286L-47 277L-47 259L-31 250M-31 268L-31 286M-31 268L-47 259M-31 268L-16 259M0 250L16 259L16 277L0 286L-16 277L-16 259L-0 250M0 268L0 286M0 268L-16 259M0 268L16 259M31 250L47 259L47 277L31 286L16 277L16 259L31 250M31 268L31 286M31 268L16 259M31 268L47 259M62 250L78 259L78 277L62 286L47 277L47 259L62 250M62 268L62 286M62 268L47 259M62 268L78 259M94 250L109 259L109 277L94 286L78 277L78 259L94 250M94 268L94 286M94 268L78 259M94 268L109 259M125 250L140 259L140 277L125 286L109 277L109 259L125 250M125 268L125 286M125 268L109 259M125 268L140 259M156 250L171 259L171 277L156 286L140 277L140 259L156 250M156 268L156 286M156 268L140 259M156 268L171 259M187 250L203 259L203 277L187 286L171 277L171 259L187 250M187 268L187 286M187 268L171 259M187 268L203 259M218 250L234 259L234 277L218 286L203 277L203 259L218 250M218 268L218 286M218 268L203 259M218 268L234 259M249 250L265 259L265 277L249 286L234 277L234 259L249 250M249 268L249 286M249 268L234 259M249 268L265 259M281 250L296 259L296 277L281 286L265 277L265 259L281 250M281 268L281 286M281 268L265 259M281 268L296 259M312 250L327 259L327 277L312 286L296 277L296 259L312 250M312 268L312 286M312 268L296 259M312 268L327 259M343 250L359 259L359 277L343 286L327 277L327 259L343 250M343 268L343 286M343 268L327 259M343 268L359 259M374 250L390 259L390 277L374 286L359 277L359 259L374 250M374 268L374 286M374 268L359 259M374 268L390 259M405 250L421 259L421 277L405 286L390 277L390 259L405 250M405 268L405 286M405 268L390 259M405 268L421 259M-16 223L0 232L0 250L-16 259L-31 250L-31 232L-16 223M-16 241L-16 259M-16 241L-31 232M-16 241L-0 232M16 223L31 232L31 250L16 259L-0 250L0 232L16 223M16 241L16 259M16 241L0 232M16 241L31 232M47 223L62 232L62 250L47 259L31 250L31 232L47 223M47 241L47 259M47 241L31 232M47 241L62 232M78 223L94 232L94 250L78 259L62 250L62 232L78 223M78 241L78 259M78 241L62 232M78 241L94 232M109 223L125 232L125 250L109 259L94 250L94 232L109 223M109 241L109 259M109 241L94 232M109 241L125 232M140 223L156 232L156 250L140 259L125 250L125 232L140 223M140 241L140 259M140 241L125 232M140 241L156 232M171 223L187 232L187 250L171 259L156 250L156 232L171 223M171 241L171 259M171 241L156 232M171 241L187 232M203 223L218 232L218 250L203 259L187 250L187 232L203 223M203 241L203 259M203 241L187 232M203 241L218 232M234 223L249 232L249 250L234 259L218 250L218 232L234 223M234 241L234 259M234 241L218 232M234 241L249 232M265 223L281 232L281 250L265 259L249 250L249 232L265 223M265 241L265 259M265 241L249 232M265 241L281 232M296 223L312 232L312 250L296 259L281 250L281 232L296 223M296 241L296 259M296 241L281 232M296 241L312 232M327 223L343 232L343 250L327 259L312 250L312 232L327 223M327 241L327 259M327 241L312 232M327 241L343 232M359 223L374 232L374 250L359 259L343 250L343 232L359 223M359 241L359 259M359 241L343 232M359 241L374 232M390 223L405 232L405 250L390 259L374 250L374 232L390 223M390 241L390 259M390 241L374 232M390 241L405 232M421 223L436 232L436 250L421 259L405 250L405 232L421 223M421 241L421 259M421 241L405 232M421 241L436 232M-31 196L-16 205L-16 223L-31 232L-47 223L-47 205L-31 196M-31 214L-31 232M-31 214L-47 205M-31 214L-16 205M0 196L16 205L16 223L0 232L-16 223L-16 205L-0 196M0 214L0 232M0 214L-16 205M0 214L16 205M31 196L47 205L47 223L31 232L16 223L16 205L31 196M31 214L31 232M31 214L16 205M31 214L47 205M62 196L78 205L78 223L62 232L47 223L47 205L62 196M62 214L62 232M62 214L47 205M62 214L78 205M94 196L109 205L109 223L94 232L78 223L78 205L94 196M94 214L94 232M94 214L78 205M94 214L109 205M125 196L140 205L140 223L125 232L109 223L109 205L125 196M125 214L125 232M125 214L109 205M125 214L140 205M156 196L171 205L171 223L156 232L140 223L140 205L156 196M156 214L156 232M156 214L140 205M156 214L171 205M187 196L203 205L203 223L187 232L171 223L171 205L187 196M187 214L187 232M187 214L171 205M187 214L203 205M218 196L234 205L234 223L218 232L203 223L203 205L218 196M218 214L218 232M218 214L203 205M218 214L234 205M249 196L265 205L265 223L249 232L234 223L234 205L249 196M249 214L249 232M249 214L234 205M249 214L265 205M281 196L296 205L296 223L281 232L265 223L265 205L281 196M281 214L281 232M281 214L265 205M281 214L296 205M312 196L327 205L327 223L312 232L296 223L296 205L312 196M312 214L312 232M312 214L296 205M312 214L327 205M343 196L359 205L359 223L343 232L327 223L327 205L343 196M343 214L343 232M343 214L327 205M343 214L359 205M374 196L390 205L390 223L374 232L359 223L359 205L374 196M374 214L374 232M374 214L359 205M374 214L390 205M405 196L421 205L421 223L405 232L390 223L390 205L405 196M405 214L405 232M405 214L390 205M405 214L421 205M-16 169L0 178L0 196L-16 205L-31 196L-31 178L-16 169M-16 187L-16 205M-16 187L-31 178M-16 187L-0 178M16 169L31 178L31 196L16 205L-0 196L0 178L16 169M16 187L16 205M16 187L0 178M16 187L31 178M47 169L62 178L62 196L47 205L31 196L31 178L47 169M47 187L47 205M47 187L31 178M47 187L62 178M78 169L94 178L94 196L78 205L62 196L62 178L78 169M78 187L78 205M78 187L62 178M78 187L94 178M109 169L125 178L125 196L109 205L94 196L94 178L109 169M109 187L109 205M109 187L94 178M109 187L125 178M140 169L156 178L156 196L140 205L125 196L125 178L140 169M140 187L140 205M140 187L125 178M140 187L156 178M171 169L187 178L187 196L171 205L156 196L156 178L171 169M171 187L171 205M171 187L156 178M171 187L187 178M203 169L218 178L218 196L203 205L187 196L187 178L203 169M203 187L203 205M203 187L187 178M203 187L218 178M234 169L249 178L249 196L234 205L218 196L218 178L234 169M234 187L234 205M234 187L218 178M234 187L249 178M265 169L281 178L281 196L265 205L249 196L249 178L265 169M265 187L265 205M265 187L249 178M265 187L281 178M296 169L312 178L312 196L296 205L281 196L281 178L296 169M296 187L296 205M296 187L281 178M296 187L312 178M327 169L343 178L343 196L327 205L312 196L312 178L327 169M327 187L327 205M327 187L312 178M327 187L343 178M359 169L374 178L374 196L359 205L343 196L343 178L359 169M359 187L359 205M359 187L343 178M359 187L374 178M390 169L405 178L405 196L390 205L374 196L374 178L390 169M390 187L390 205M390 187L374 178M390 187L405 178M421 169L436 178L436 196L421 205L405 196L405 178L421 169M421 187L421 205M421 187L405 178M421 187L436 178M-31 142L-16 151L-16 169L-31 178L-47 169L-47 151L-31 142M-31 160L-31 178M-31 160L-47 151M-31 160L-16 151M0 142L16 151L16 169L0 178L-16 169L-16 151L-0 142M0 160L0 178M0 160L-16 151M0 160L16 151M31 142L47 151L47 169L31 178L16 169L16 151L31 142M31 160L31 178M31 160L16 151M31 160L47 151M62 142L78 151L78 169L62 178L47 169L47 151L62 142M62 160L62 178M62 160L47 151M62 160L78 151M94 142L109 151L109 169L94 178L78 169L78 151L94 142M94 160L94 178M94 160L78 151M94 160L109 151M125 142L140 151L140 169L125 178L109 169L109 151L125 142M125 160L125 178M125 160L109 151M125 160L140 151M156 142L171 151L171 169L156 178L140 169L140 151L156 142M156 160L156 178M156 160L140 151M156 160L171 151M187 142L203 151L203 169L187 178L171 169L171 151L187 142M187 160L187 178M187 160L171 151M187 160L203 151M218 142L234 151L234 169L218 178L203 169L203 151L218 142M218 160L218 178M218 160L203 151M218 160L234 151M249 142L265 151L265 169L249 178L234 169L234 151L249 142M249 160L249 178M249 160L234 151M249 160L265 151M281 142L296 151L296 169L281 178L265 169L265 151L281 142M281 160L281 178M281 160L265 151M281 160L296 151M312 142L327 151L327 169L312 178L296 169L296 151L312 142M312 160L312 178M312 160L296 151M312 160L327 151M343 142L359 151L359 169L343 178L327 169L327 151L343 142M343 160L343 178M343 160L327 151M343 160L359 151M374 142L390 151L390 169L374 178L359 169L359 151L374 142M374 160L374 178M374 160L359 151M374 160L390 151M405 142L421 151L421 169L405 178L390 169L390 151L405 142M405 160L405 178M405 160L390 151M405 160L421 151M-16 115L0 124L0 142L-16 151L-31 142L-31 124L-16 115M-16 133L-16 151M-16 133L-31 124M-16 133L-0 124M16 115L31 124L31 142L16 151L-0 142L0 124L16 115M16 133L16 151M16 133L0 124M16 133L31 124M47 115L62 124L62 142L47 151L31 142L31 124L47 115M47 133L47 151M47 133L31 124M47 133L62 124M78 115L94 124L94 142L78 151L62 142L62 124L78 115M78 133L78 151M78 133L62 124M78 133L94 124M109 115L125 124L125 142L109 151L94 142L94 124L109 115M109 133L109 151M109 133L94 124M109 133L125 124M140 115L156 124L156 142L140 151L125 142L125 124L140 115M140 133L140 151M140 133L125 124M140 133L156 124M171 115L187 124L187 142L171 151L156 142L156 124L171 115M171 133L171 151M171 133L156 124M171 133L187 124M203 115L218 124L218 142L203 151L187 142L187 124L203 115M203 133L203 151M203 133L187 124M203 133L218 124M234 115L249 124L249 142L234 151L218 142L218 124L234 115M234 133L234 151M234 133L218 124M234 133L249 124M265 115L281 124L281 142L265 151L249 142L249 124L265 115M265 133L265 151M265 133L249 124M265 133L281 124M296 115L312 124L312 142L296 151L281 142L281 124L296 115M296 133L296 151M296 133L281 124M296 133L312 124M327 115L343 124L343 142L327 151L312 142L312 124L327 115M327 133L327 151M327 133L312 124M327 133L343 124M359 115L374 124L374 142L359 151L343 142L343 124L359 115M359 133L359 151M359 133L343 124M359 133L374 124M390 115L405 124L405 142L390 151L374 142L374 124L390 115M390 133L390 151M390 133L374 124M390 133L405 124M421 115L436 124L436 142L421 151L405 142L405 124L421 115M421 133L421 151M421 133L405 124M421 133L436 124M-31 88L-16 97L-16 115L-31 124L-47 115L-47 97L-31 88M-31 106L-31 124M-31 106L-47 97M-31 106L-16 97M0 88L16 97L16 115L0 124L-16 115L-16 97L-0 88M0 106L0 124M0 106L-16 97M0 106L16 97M31 88L47 97L47 115L31 124L16 115L16 97L31 88M31 106L31 124M31 106L16 97M31 106L47 97M62 88L78 97L78 115L62 124L47 115L47 97L62 88M62 106L62 124M62 106L47 97M62 106L78 97M94 88L109 97L109 115L94 124L78 115L78 97L94 88M94 106L94 124M94 106L78 97M94 106L109 97M125 88L140 97L140 115L125 124L109 115L109 97L125 88M125 106L125 124M125 106L109 97M125 106L140 97M156 88L171 97L171 115L156 124L140 115L140 97L156 88M156 106L156 124M156 106L140 97M156 106L171 97M187 88L203 97L203 115L187 124L171 115L171 97L187 88M187 106L187 124M187 106L171 97M187 106L203 97M218 88L234 97L234 115L218 124L203 115L203 97L218 88M218 106L218 124M218 106L203 97M218 106L234 97M249 88L265 97L265 115L249 124L234 115L234 97L249 88M249 106L249 124M249 106L234 97M249 106L265 97M281 88L296 97L296 115L281 124L265 115L265 97L281 88M281 106L281 124M281 106L265 97M281 106L296 97M312 88L327 97L327 115L312 124L296 115L296 97L312 88M312 106L312 124M312 106L296 97M312 106L327 97M343 88L359 97L359 115L343 124L327 115L327 97L343 88M343 106L343 124M343 106L327 97M343 106L359 97M374 88L390 97L390 115L374 124L359 115L359 97L374 88M374 106L374 124M374 106L359 97M374 106L390 97M405 88L421 97L421 115L405 124L390 115L390 97L405 88M405 106L405 124M405 106L390 97M405 106L421 97"/></svg>
+  <div class="ps-head"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 8 L100 21 V55 C100 81 83 99 60 112 C37 99 20 81 20 55 V21 Z" fill="#818CF8"/><circle cx="60" cy="57" r="18" fill="none" stroke="#0A0F24" stroke-width="10"/><path d="M71.6 70.8 L78.6 79.2" stroke="#0A0F24" stroke-width="11" stroke-linecap="round"/></svg><span>Qastellan</span></div>
+  <div class="ps-status">
+    <div class="ps-ring">
+      <svg width="148" height="148" viewBox="0 0 176 176" aria-hidden="true">
+        <circle cx="88" cy="88" r="86" fill="none" stroke="#2DD4BF" stroke-dasharray="2 6" opacity=".7"/>
+        <circle cx="88" cy="88" r="72" fill="none" stroke="rgba(148,163,184,.18)"/>
+        <circle cx="88" cy="88" r="72" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-dasharray="113 340" transform="rotate(-90 88 88)"/>
+        <circle cx="88" cy="88" r="60" fill="rgba(45,212,191,.12)"/>
+      </svg>
+      <div class="ps-glyph"><svg width="72" height="72" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 8 L100 21 V55 C100 81 83 99 60 112 C37 99 20 81 20 55 V21 Z" fill="#2DD4BF"/><circle cx="60" cy="57" r="18" fill="none" stroke="#0A0F24" stroke-width="7"/><path d="M71.6 70.8 L78.6 79.2" stroke="#0A0F24" stroke-width="8" stroke-linecap="round"/></svg></div>
+    </div>
+    <strong>You're protected</strong>
+    <span>No threats found in your last scan</span>
+    <em>DEFS 2026.11.15 · AUTO-UPDATE ON</em>
+  </div>
+  <div class="ps-scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14 M21 21l-4.35-4.35"/></svg> Scan now</div>
+  <div class="ps-list"><div><span>Last scan</span><b>Today, 9:41 AM</b></div><div><span>Virus definitions</span><b class="ok">Up to date</b></div><div><span>Real-time protection</span><b class="ok">On</b></div></div>
+  <div class="ps-tiles"><div class="tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v18H7z M11 18h2"/></svg><span>App</span></div><div class="tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6"/></svg><span>File</span></div><div class="tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Quarantine</span></div><div class="tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h16v18H4z M9 12l2 2 4-4"/></svg><span>Audit</span></div></div>
+  <div class="ps-nav"><span class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</span><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z"/></svg>Apps</span><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 7v5l3 2"/></svg>History</span><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Protection</span></div>
+</div></div></div>
+        <div class="chip chip-a"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M8 12l3 3 5-6"/></svg><div><strong>86 apps checked</strong><span>on this phone</span></div></div>
+        <div class="chip chip-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF5FA2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 9l6 6 M15 9l-6 6"/></svg><div><strong>Risky app blocked</strong><span>before it opened</span></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="strip dark"><div class="wrap"><span class="mono accent">THREAT DATA FROM</span><span>ClamAV</span><span aria-hidden="true">·</span><span>MalwareBazaar by abuse.ch</span><span aria-hidden="true">·</span><span>MVT spyware indicators</span></div></section>
+
+<section id="features" class="section dark">
+  <div class="wrap">
+    <div class="head"><span class="mono tealc">WHAT IT DOES</span><h2>One job, done properly: protect the phone and the apps on it.</h2></div>
+    <div class="carousel" id="carousel" aria-roledescription="carousel" aria-label="Features">
+      <div class="track" id="track">
+      <article class="fcard" data-i="0" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l7-7 M12 12h.01"/></svg></div>
+        <span class="mono accent">01 / 06</span>
+        <h3>Full and real-time scanning</h3>
+        <p>Checks every installed app and file, then watches new downloads the moment they land.</p>
+      </article>
+      <article class="fcard" data-i="1" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v18H7z M11 18h2 M9 7h6"/></svg></div>
+        <span class="mono accent">02 / 06</span>
+        <h3>New apps checked on install</h3>
+        <p>Each app is scanned as it installs, with a clear warning before you ever open it.</p>
+      </article>
+      <article class="fcard" data-i="2" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg></div>
+        <span class="mono accent">03 / 06</span>
+        <h3>Catches what lists miss</h3>
+        <p>Behaviour rules flag apps that act like malware, even before they appear in any threat list.</p>
+      </article>
+      <article class="fcard" data-i="3" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/></svg></div>
+        <span class="mono accent">04 / 06</span>
+        <h3>See what apps can see</h3>
+        <p>A privacy report shows each app's sensitive access and the trackers hidden inside it.</p>
+      </article>
+      <article class="fcard" data-i="4" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z M12 12l9-5 M12 12v10 M12 12L3 7"/></svg></div>
+        <span class="mono accent">05 / 06</span>
+        <h3>Integrity checks</h3>
+        <p>Spots rooted devices, unlocked bootloaders and fake copies of well-known apps.</p>
+      </article>
+      <article class="fcard" data-i="5" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5 M20 12a8 8 0 0 1-14 5 M18 3v4h-4 M6 21v-4h4"/></svg></div>
+        <span class="mono accent">06 / 06</span>
+        <h3>Always current</h3>
+        <p>Signed threat definitions update daily, and Qastellan checks for updates every time it starts.</p>
+      </article>
+      <article class="fcard" data-i="0" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l7-7 M12 12h.01"/></svg></div>
+        <span class="mono accent">01 / 06</span>
+        <h3>Full and real-time scanning</h3>
+        <p>Checks every installed app and file, then watches new downloads the moment they land.</p>
+      </article>
+      <article class="fcard" data-i="1" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v18H7z M11 18h2 M9 7h6"/></svg></div>
+        <span class="mono accent">02 / 06</span>
+        <h3>New apps checked on install</h3>
+        <p>Each app is scanned as it installs, with a clear warning before you ever open it.</p>
+      </article>
+      <article class="fcard" data-i="2" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg></div>
+        <span class="mono accent">03 / 06</span>
+        <h3>Catches what lists miss</h3>
+        <p>Behaviour rules flag apps that act like malware, even before they appear in any threat list.</p>
+      </article>
+      <article class="fcard" data-i="3" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/></svg></div>
+        <span class="mono accent">04 / 06</span>
+        <h3>See what apps can see</h3>
+        <p>A privacy report shows each app's sensitive access and the trackers hidden inside it.</p>
+      </article>
+      <article class="fcard" data-i="4" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z M12 12l9-5 M12 12v10 M12 12L3 7"/></svg></div>
+        <span class="mono accent">05 / 06</span>
+        <h3>Integrity checks</h3>
+        <p>Spots rooted devices, unlocked bootloaders and fake copies of well-known apps.</p>
+      </article>
+      <article class="fcard" data-i="5" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5 M20 12a8 8 0 0 1-14 5 M18 3v4h-4 M6 21v-4h4"/></svg></div>
+        <span class="mono accent">06 / 06</span>
+        <h3>Always current</h3>
+        <p>Signed threat definitions update daily, and Qastellan checks for updates every time it starts.</p>
+      </article>
+      <article class="fcard" data-i="0" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l7-7 M12 12h.01"/></svg></div>
+        <span class="mono accent">01 / 06</span>
+        <h3>Full and real-time scanning</h3>
+        <p>Checks every installed app and file, then watches new downloads the moment they land.</p>
+      </article>
+      <article class="fcard" data-i="1" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v18H7z M11 18h2 M9 7h6"/></svg></div>
+        <span class="mono accent">02 / 06</span>
+        <h3>New apps checked on install</h3>
+        <p>Each app is scanned as it installs, with a clear warning before you ever open it.</p>
+      </article>
+      <article class="fcard" data-i="2" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg></div>
+        <span class="mono accent">03 / 06</span>
+        <h3>Catches what lists miss</h3>
+        <p>Behaviour rules flag apps that act like malware, even before they appear in any threat list.</p>
+      </article>
+      <article class="fcard" data-i="3" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6"/></svg></div>
+        <span class="mono accent">04 / 06</span>
+        <h3>See what apps can see</h3>
+        <p>A privacy report shows each app's sensitive access and the trackers hidden inside it.</p>
+      </article>
+      <article class="fcard" data-i="4" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z M12 12l9-5 M12 12v10 M12 12L3 7"/></svg></div>
+        <span class="mono accent">05 / 06</span>
+        <h3>Integrity checks</h3>
+        <p>Spots rooted devices, unlocked bootloaders and fake copies of well-known apps.</p>
+      </article>
+      <article class="fcard" data-i="5" tabindex="-1">
+        <div class="fico"><svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="37" fill="none" stroke="#818CF8" stroke-opacity=".45" stroke-dasharray="2 5"/><circle cx="38" cy="38" r="28" fill="#818CF8" fill-opacity=".14" stroke="#818CF8" stroke-opacity=".5"/></svg><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5 M20 12a8 8 0 0 1-14 5 M18 3v4h-4 M6 21v-4h4"/></svg></div>
+        <span class="mono accent">06 / 06</span>
+        <h3>Always current</h3>
+        <p>Signed threat definitions update daily, and Qastellan checks for updates every time it starts.</p>
+      </article>
+      </div>
+    </div>
+    <div class="controls">
+      <button type="button" class="icon-btn" id="prev" aria-label="Previous feature"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="dots" id="dots"><button type="button" class="dot" data-i="0" aria-label="Show feature 1: Full and real-time scanning"></button><button type="button" class="dot" data-i="1" aria-label="Show feature 2: New apps checked on install"></button><button type="button" class="dot" data-i="2" aria-label="Show feature 3: Catches what lists miss"></button><button type="button" class="dot" data-i="3" aria-label="Show feature 4: See what apps can see"></button><button type="button" class="dot" data-i="4" aria-label="Show feature 5: Integrity checks"></button><button type="button" class="dot" data-i="5" aria-label="Show feature 6: Always current"></button></div>
+      <button type="button" class="icon-btn" id="next" aria-label="Next feature"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<section id="privacy" class="section">
+  <div class="wrap split">
+    <div>
+      <span class="mono indigo">PRIVACY BY DESIGN</span>
+      <h2>Nothing you have ever leaves your phone.</h2>
+      <p class="big">Most security apps send your files and app list to their servers. Qastellan has no servers to send them to. It downloads a signed threat list once a day and does all the checking on your device.</p>
+    </div>
+    <div class="checklist">
+      <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><div><strong>No account, ever</strong><span>Install it and it works. No sign-up, no email.</span></div></div>
+      <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><div><strong>No ads or tracking</strong><span>The app contains no advertising or analytics code, and this site sets no cookies.</span></div></div>
+      <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><div><strong>Signed, verified updates</strong><span>Threat lists are cryptographically signed, so a tampered file is rejected.</span></div></div>
+      <div class="row"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg><div><strong>Open for anyone to check</strong><span>Every line of code is public on GitHub.</span></div></div>
+    </div>
+    <div class="diagram">
+      <svg role="img" aria-label="Scanning happens on the phone; nothing is uploaded; there are no servers" width="560" height="200" viewBox="0 0 560 200">
+        <rect x="40" y="20" width="96" height="164" rx="18" fill="#fff" stroke="#4F46E5" stroke-width="2"/>
+        <path d="M88 64 L112 72 V92 C112 108 102 118 88 124 C74 118 64 108 64 92 V72 Z" fill="#4F46E5"/>
+        <circle cx="88" cy="93" r="10" fill="none" stroke="#fff" stroke-width="4"/><path d="M95 100 L99 105" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <text x="88" y="160" text-anchor="middle" font-size="12" fill="#475569" font-family="Inter,sans-serif">checked here</text>
+        <path d="M160 102 H380" stroke="#94A3B8" stroke-width="2" stroke-dasharray="6 8"/>
+        <circle cx="270" cy="102" r="22" fill="#FCE7F3" stroke="#C8175D" stroke-width="2"/><path d="M260 92 L280 112 M280 92 L260 112" stroke="#C8175D" stroke-width="3" stroke-linecap="round"/>
+        <text x="270" y="150" text-anchor="middle" font-size="12" fill="#475569" font-family="Inter,sans-serif">nothing uploaded</text>
+        <path d="M430 128 h80 a26 26 0 0 0 -6 -51 a36 36 0 0 0 -68 6 a24 24 0 0 0 -6 45 z" fill="#fff" stroke="#94A3B8" stroke-width="2"/>
+        <text x="470" y="160" text-anchor="middle" font-size="12" fill="#475569" font-family="Inter,sans-serif">no servers</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="head"><span class="mono indigo">HOW IT WORKS</span><h2>Set up once. Protected from then on.</h2></div>
+    <ol class="steps">
+        <li class="card step"><div class="step-top"><span class="step-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg></span><span class="mono indigo">01</span></div><h3>Install and allow access</h3><p>Three short steps explain what each permission is for. Skip any you like.</p></li>
+        <li class="card step"><div class="step-top"><span class="step-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 M12 7a5 5 0 1 0 5 5 M12 12l7-7"/></svg></span><span class="mono indigo">02</span></div><h3>Run your first scan</h3><p>Every app and file is checked, with plain-language results and one-tap fixes.</p></li>
+        <li class="card step"><div class="step-top"><span class="step-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z M9 12l2 2 4-4"/></svg></span><span class="mono indigo">03</span></div><h3>Stay protected</h3><p>Real-time protection watches new apps and downloads, and threat data refreshes daily.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="download" class="section dark download">
+  <div class="wrap">
+    <div class="radar-small">
+      <svg viewBox="0 0 220 220" aria-hidden="true"><circle cx="110" cy="110" r="108" fill="none" stroke="#818CF8" stroke-opacity=".25" stroke-dasharray="2 7"/><circle cx="110" cy="110" r="84" fill="none" stroke="#818CF8" stroke-opacity=".2"/><g class="sweep-small"><circle cx="110" cy="110" r="84" fill="none" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" stroke-dasharray="60 468"/></g><circle cx="110" cy="110" r="60" fill="#818CF8" fill-opacity=".1"/></svg>
+      <svg width="96" height="96" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 8 L100 21 V55 C100 81 83 99 60 112 C37 99 20 81 20 55 V21 Z" fill="#818CF8"/><circle cx="60" cy="57" r="18" fill="none" stroke="#0A1020" stroke-width="7"/><path d="M71.6 70.8 L78.6 79.2" stroke="#0A1020" stroke-width="8" stroke-linecap="round"/></svg>
+    </div>
+    <h2>Get Qastellan</h2>
+    <p class="lead" id="release-note">Free for Android 8.0 and newer. Download the APK straight from our GitHub releases.</p>
+    <a class="btn btn-primary store" id="apk-link" href="https://github.com/aadvark/Qastellan/releases/latest/download/qastellan.apk"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg><span><small>Download the</small><b>Android APK</b></span></a>
+    <p class="verify">Every release lists its SHA-256 checksum on <a href="https://github.com/aadvark/Qastellan/releases">GitHub Releases</a>.</p>
+    <span class="mono fineprint">ANDROID 8.0+ · NO ADS · NO ACCOUNT · MADE IN SINGAPORE</span>
+  </div>
+</section>
+
+<section id="faq" class="section faq">
+  <div class="wrap split">
+    <div><span class="mono indigo">QUESTIONS</span><h2>Straight answers.</h2></div>
+    <div>
+      <details class="qa" open><summary>Is Qastellan really free?</summary><p>Yes. No ads, no subscription, no premium tier. It costs nothing to run, so it can stay free.</p></details>
+      <details class="qa"><summary>Does anything get uploaded?</summary><p>No. Apps and files are checked on your phone. Qastellan only downloads its daily threat list; it never sends your data anywhere.</p></details>
+      <details class="qa"><summary>Why does it ask for so many permissions?</summary><p>To scan apps it must see them, to scan downloads it needs file access, and to warn you it needs notifications. Each one is explained during setup, and you can skip any of them.</p></details>
+      <details class="qa"><summary>How do I install the APK?</summary><p>Download it on your phone, open it, and allow your browser to install apps when Android asks. You can turn that setting off again afterwards.</p></details>
+      <details class="qa"><summary>Why open source?</summary><p>Security software asks for a lot of trust. With the code public, anyone can check exactly what Qastellan does.</p></details>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="dark">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:10px"><svg width="28" height="28" viewBox="0 0 120 120" aria-hidden="true"><path d="M60 8 L100 21 V55 C100 81 83 99 60 112 C37 99 20 81 20 55 V21 Z" fill="#818CF8"/><circle cx="60" cy="57" r="18" fill="none" stroke="#0A1020" stroke-width="10"/><path d="M71.6 70.8 L78.6 79.2" stroke="#0A1020" stroke-width="11" stroke-linecap="round"/></svg><span style="font-family:Outfit,sans-serif;font-size:18px;color:var(--ink)">Qastellan</span><span>by Kith + Keen · Made in Singapore</span></div>
+    <div class="links"><a href="https://github.com/aadvark/Qastellan">Source code</a><a href="https://github.com/aadvark/Qastellan/blob/main/NOTICE.md">Data sources</a><a href="https://github.com/aadvark/Qastellan/issues">Report a problem</a><a href="https://github.com/aadvark/Qastellan/blob/main/LICENSE">GPL-3.0</a></div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Cube pattern for the hero (drawn here to keep the page small)
+  var W = 1440, H = 900, r = 26, w = Math.sqrt(3) * r, d = '';
+  for (var row = 0; row * 1.5 * r < H; row++) {
+    var cy = H + r - row * 1.5 * r, off = row % 2 ? w / 2 : 0;
+    for (var cx = -w + off; cx < W + w; cx += w) {
+      for (var k = 0; k <= 6; k++) {
+        var a = (60 * k - 90) * Math.PI / 180;
+        d += (k ? 'L' : 'M') + (cx + r * Math.cos(a)).toFixed(0) + ' ' + (cy + r * Math.sin(a)).toFixed(0);
+      }
+      [90, 210, 330].forEach(function (deg) {
+        var b = deg * Math.PI / 180;
+        d += 'M' + cx.toFixed(0) + ' ' + cy.toFixed(0) + 'L' + (cx + r * Math.cos(b)).toFixed(0) + ' ' + (cy + r * Math.sin(b)).toFixed(0);
+      });
+    }
+  }
+  document.getElementById('cubes').setAttribute('d', d);
+
+  // Slide-out menu
+  var body = document.body, btn = document.getElementById('menu-btn'), drawer = document.getElementById('menu');
+  function setMenu(open) {
+    body.classList.toggle('menu-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    drawer.setAttribute('aria-hidden', String(!open));
+    if (open) drawer.querySelector('a, button').focus();
+  }
+  btn.addEventListener('click', function () { setMenu(true); });
+  document.querySelectorAll('[data-close], .menu-link').forEach(function (el) { el.addEventListener('click', function () { setMenu(false); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+
+  // Feature carousel: three copies of the cards so it revolves endlessly; rotates every 3.8 s, pauses on hover or focus
+  var track = document.getElementById('track'), cards = track.querySelectorAll('.fcard'), dots = document.querySelectorAll('.dot');
+  var n = dots.length, v = n, paused = false;
+  function place(animate) {
+    var cw = cards[0].offsetWidth, gap = 24;
+    track.style.transition = animate ? '' : 'none';
+    track.style.transform = 'translateX(' + (-(v * (cw + gap) + cw / 2)) + 'px)';
+    cards.forEach(function (c, j) { c.classList.toggle('on', j === v); c.setAttribute('aria-hidden', String(j !== v)); c.style.transition = animate ? '' : 'none'; });
+    dots.forEach(function (dt, j) { dt.classList.toggle('on', j === v % n); dt.setAttribute('aria-current', String(j === v % n)); });
+    if (!animate) { void track.offsetWidth; track.style.transition = ''; cards.forEach(function (c) { c.style.transition = ''; }); }
+  }
+  function go(target) { v = target; place(true); }
+  track.addEventListener('transitionend', function (e) {
+    if (e.target !== track) return;
+    if (v < n || v >= 2 * n) { v = n + ((v % n) + n) % n; place(false); }
+  });
+  cards.forEach(function (c, j) { c.addEventListener('click', function () { go(j); }); });
+  dots.forEach(function (dt, j) { dt.addEventListener('click', function () { go(n + j); }); });
+  document.getElementById('prev').addEventListener('click', function () { go(v - 1); });
+  document.getElementById('next').addEventListener('click', function () { go(v + 1); });
+  var area = document.getElementById('features');
+  area.addEventListener('mouseenter', function () { paused = true; });
+  area.addEventListener('mouseleave', function () { paused = false; });
+  area.addEventListener('focusin', function () { paused = true; });
+  area.addEventListener('focusout', function () { paused = false; });
+  window.addEventListener('resize', function () { place(false); });
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setInterval(function () { if (!paused && !body.classList.contains('menu-open') && !document.hidden) go(v + 1); }, 3800);
+  }
+  place(false);
+
+  // Release status: shows the latest version, or "coming soon" before the first release
+  fetch('https://api.github.com/repos/aadvark/Qastellan/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (rel) {
+      var note = document.getElementById('release-note'), link = document.getElementById('apk-link');
+      if (rel && rel.tag_name && rel.tag_name !== 'definitions') {
+        note.textContent = 'Version ' + rel.tag_name.replace(/^v/, '') + ' · free for Android 8.0 and newer.';
+      } else {
+        note.textContent = 'Version 1.0 is on its way. Follow the project on GitHub to hear when it lands.';
+        link.href = 'https://github.com/aadvark/Qastellan';
+        link.querySelector('small').textContent = 'Coming soon';
+        link.querySelector('b').textContent = 'Follow on GitHub';
+      }
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>

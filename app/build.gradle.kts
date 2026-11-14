@@ -35,8 +35,23 @@ android {
         }
     }
 
+    // Release signing: the keystore is decoded from GitHub secrets by .github/workflows/release.yml.
+    // Without these environment variables, release builds are left unsigned.
+    val keystorePath: String? = System.getenv("QASTELLAN_KEYSTORE")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("QASTELLAN_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("QASTELLAN_KEY_ALIAS")
+                keyPassword = System.getenv("QASTELLAN_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystorePath != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

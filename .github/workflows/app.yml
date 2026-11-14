@@ -3,7 +3,7 @@ name: App build and tests
 on:
   push:
     branches: [main]
-    paths-ignore: ["pipeline/**", "**.md"]
+    paths-ignore: ["pipeline/**", "site/**", "**.md"]
   pull_request:
   workflow_dispatch: {}
 

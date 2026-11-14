@@ -1,0 +1,64 @@
+name: Release
+
+# Push a tag like v0.2.0 (matching versionName in app/build.gradle.kts) to publish
+# a signed APK to GitHub Releases. The website's download button always points to
+# the newest release's qastellan.apk.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Check the tag matches the app version
+        run: |
+          version=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $version in app/build.gradle.kts"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Run unit tests
+        run: ./gradlew testGithubReleaseUnitTest
+
+      - name: Build signed APK
+        env:
+          KEYSTORE_B64: ${{ secrets.QASTELLAN_KEYSTORE_B64 }}
+          QASTELLAN_KEYSTORE_PASSWORD: ${{ secrets.QASTELLAN_KEYSTORE_PASSWORD }}
+          QASTELLAN_KEY_ALIAS: ${{ secrets.QASTELLAN_KEY_ALIAS }}
+          QASTELLAN_KEY_PASSWORD: ${{ secrets.QASTELLAN_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Signing secrets are missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          export QASTELLAN_KEYSTORE="$RUNNER_TEMP/release.jks"
+          ./gradlew assembleGithubRelease
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir dist
+          cp app/build/outputs/apk/github/release/app-github-release.apk "dist/qastellan-$VERSION.apk"
+          cp "dist/qastellan-$VERSION.apk" dist/qastellan.apk
+          (cd dist && sha256sum qastellan-*.apk qastellan.apk > SHA256SUMS.txt)
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Qastellan $VERSION" \
+            --notes "Download **qastellan.apk** below and open it on your Android phone (Android 8.0+).
+
+          SHA-256 checksums are in SHA256SUMS.txt.
+
+          $(git log -1 --pretty=%B)"
