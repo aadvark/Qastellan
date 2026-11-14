@@ -5,5 +5,5 @@
         Replace with the key printed by pipeline/tools/generate_signing_key.py.
         The matching private key goes in the GitHub secret QASTELLAN_SIGNING_KEY.
     -->
-    <string name="definitions_public_key" translatable="false">REPLACE_WITH_PUBLIC_KEY</string>
+    <string name="definitions_public_key" translatable="false">MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEOWlDpjpuU/kudZM89l6JuVnGM/ytweOkUvanJY3do5Uy33PXNr6b2xEPN58ZXhoG/C8UVjbMXHntkpbfMg4bBw==</string>
 </resources>
