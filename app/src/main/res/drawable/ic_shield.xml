@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Qastellan mark: shield with a Q drawn as a magnifying glass. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M60,8 L100,21 V55 C100,81 83,99 60,112 C37,99 20,81 20,55 V21 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9"
+        android:pathData="M60,39 A18,18 0 1,1 59.99,39 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:pathData="M71.6,70.8 L78.6,79.2" />
+</vector>

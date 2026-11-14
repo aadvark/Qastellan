@@ -1,0 +1,76 @@
+name: Daily definitions
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # every day at 02:17 UTC (10:17 Singapore)
+  workflow_dispatch: {}      # "Run workflow" button for a manual update
+
+permissions:
+  contents: write            # needed to update the "definitions" release
+
+concurrency:
+  group: definitions
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install tools
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline tests
+        run: pytest -q
+
+      # Keeping ClamAV's files between runs means cvdupdate only fetches the
+      # small daily changes, as ClamAV asks mirrors to do.
+      - name: Restore ClamAV cache
+        uses: actions/cache@v4
+        with:
+          path: pipeline/sources/clamav
+          key: clamav-${{ github.run_id }}
+          restore-keys: clamav-
+
+      - name: Update ClamAV databases
+        run: |
+          mkdir -p sources/clamav
+          cvd config set --dbdir "$PWD/sources/clamav"
+          cvd update || echo "::warning::ClamAV update failed; using cached copy if any"
+
+      - name: Download other feeds
+        env:
+          MB_AUTH_KEY: ${{ secrets.MB_AUTH_KEY }}
+        run: python -m qdefs.fetch --dest sources
+
+      - name: Build and sign definitions
+        env:
+          QASTELLAN_SIGNING_KEY: ${{ secrets.QASTELLAN_SIGNING_KEY }}
+        run: |
+          args=(--out out --extra extra_signatures.txt --stix-dir sources/stix)
+          for f in sources/clamav/main.cvd sources/clamav/daily.cvd; do
+            [ -f "$f" ] && args+=(--clamav "$f")
+          done
+          [ -f sources/malwarebazaar_full.csv.zip ] && args+=(--mb-csv sources/malwarebazaar_full.csv.zip)
+          python -m qdefs.build "${args[@]}"
+
+      - name: Publish to the "definitions" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view definitions >/dev/null 2>&1 || \
+            gh release create definitions --title "Virus definitions" \
+              --notes "Updated daily by the Daily definitions workflow. The app downloads these files automatically." \
+              --latest=false
+          gh release upload definitions out/* --clobber

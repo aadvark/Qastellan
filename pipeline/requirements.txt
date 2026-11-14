@@ -1,0 +1,4 @@
+cryptography>=42
+PyYAML>=6
+cvdupdate>=1.1
+pytest>=8

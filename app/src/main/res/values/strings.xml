@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Qastellan</string>
+    <string name="channel_threats">Threat warnings</string>
+    <string name="channel_protection">Real-time protection</string>
+    <string name="protection_on">Real-time protection is on</string>
+    <string name="threat_title">Threat found: %1$s</string>
+    <string name="threat_known">Matches known malware: %1$s</string>
+    <string name="threat_risky">Behaves like malware</string>
+</resources>

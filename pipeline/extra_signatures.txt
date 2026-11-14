@@ -1,0 +1,6 @@
+# Qastellan's own signatures: "<md5|sha1|sha256 hex> <detection name>"
+#
+# The EICAR test file is harmless. Every antivirus detects it so people can
+# check their scanner works without touching real malware.
+44d88612fea8a8f36de82e1278abb02f Qastellan.Test.EICAR
+275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f Qastellan.Test.EICAR

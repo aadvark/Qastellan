@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Public key that verifies the daily definitions (ECDSA P-256, base64 DER).
+        Replace with the key printed by pipeline/tools/generate_signing_key.py.
+        The matching private key goes in the GitHub secret QASTELLAN_SIGNING_KEY.
+    -->
+    <string name="definitions_public_key" translatable="false">REPLACE_WITH_PUBLIC_KEY</string>
+</resources>
