@@ -1,0 +1,375 @@
+package com.kithandkeen.qastellan.ui.screens
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kithandkeen.qastellan.data.AppState
+import com.kithandkeen.qastellan.data.Resolution
+import com.kithandkeen.qastellan.data.ScanState
+import com.kithandkeen.qastellan.device.DeviceScanner
+import com.kithandkeen.qastellan.device.SecurityAudit
+import com.kithandkeen.qastellan.engine.Finding
+import com.kithandkeen.qastellan.ui.BottomNav
+import com.kithandkeen.qastellan.ui.Tab
+import com.kithandkeen.qastellan.ui.components.ButtonKind
+import com.kithandkeen.qastellan.ui.components.Chip
+import com.kithandkeen.qastellan.ui.components.Divider
+import com.kithandkeen.qastellan.ui.components.Glyph
+import com.kithandkeen.qastellan.ui.components.Icon
+import com.kithandkeen.qastellan.ui.components.Icons
+import com.kithandkeen.qastellan.ui.components.Initials
+import com.kithandkeen.qastellan.ui.components.MonoLabel
+import com.kithandkeen.qastellan.ui.components.QButton
+import com.kithandkeen.qastellan.ui.components.QCard
+import com.kithandkeen.qastellan.ui.components.Screen
+import com.kithandkeen.qastellan.ui.components.TopBar
+import com.kithandkeen.qastellan.ui.friendlyTime
+import com.kithandkeen.qastellan.ui.theme.LocalTokens
+import com.kithandkeen.qastellan.ui.theme.Mono
+import com.kithandkeen.qastellan.ui.theme.Outfit
+import com.kithandkeen.qastellan.ui.theme.Type
+
+// ===================================================================== Home
+
+data class HomeModel(
+    val threats: Int,
+    val lastScan: Long,
+    val definitionsVersion: String,
+    val definitionsChecked: Long,
+    val realtime: Boolean,
+    val appUpdate: String?,
+    val appUpdateUrl: String?,
+)
+
+@Composable
+fun HomeScreen(
+    model: HomeModel,
+    onScan: () -> Unit,
+    onReview: () -> Unit,
+    onPickApp: () -> Unit,
+    onPickFile: () -> Unit,
+    onQuarantine: () -> Unit,
+    onAudit: () -> Unit,
+    onSettings: () -> Unit,
+    onTab: (Tab) -> Unit,
+) {
+    val t = LocalTokens.current
+    val context = LocalContext.current
+    val action = model.threats > 0
+    val noDefinitions = model.definitionsVersion == "none"
+    val color = if (action) t.warn else t.ok
+    Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
+        Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Glyph(30.dp, t.accent, t.onAccent, 10f)
+            Text("Qastellan", Modifier.padding(start = 8.dp).weight(1f), style = Type.heading, color = t.text)
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(role = Role.Button, onClick = onSettings)
+                    .semantics { contentDescription = "Protection settings" },
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.settings, t.text, 22.dp) }
+        }
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (model.appUpdate != null) {
+                QCard(padding = 14.dp, background = t.okSoft, borderColor = t.ok) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Qastellan ${model.appUpdate} is available", Modifier.weight(1f), style = Type.bodyStrong, color = t.text)
+                        QButton("Get it", {
+                            model.appUpdateUrl?.let { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }
+                        }, height = 40.dp)
+                    }
+                }
+            }
+            QCard(radius = 28.dp, padding = 20.dp) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusRing(color, 148.dp, if (action) "Action needed" else "Protected")
+                    Text(
+                        if (action) "Action needed" else "You're protected",
+                        style = Type.title, color = color, textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        when {
+                            action -> "${model.threats} ${if (model.threats == 1) "threat is" else "threats are"} waiting for your review"
+                            model.lastScan == 0L -> "Run your first scan to check every app and file"
+                            else -> "No threats found in your last scan"
+                        },
+                        style = Type.body, color = t.muted, textAlign = TextAlign.Center,
+                    )
+                    if (action) QButton("Review threats", onReview, kind = ButtonKind.DANGER, height = 44.dp)
+                    MonoLabel(
+                        if (noDefinitions) "DEFINITIONS NOT DOWNLOADED YET" else "DEFS ${model.definitionsVersion} · ${if (model.realtime) "REAL-TIME ON" else "REAL-TIME OFF"}",
+                    )
+                }
+            }
+            QButton("Scan now", onScan, Modifier.fillMaxWidth(), height = 58.dp, leading = { Icon(Icons.search, t.onAccent, 20.dp, strokeWidth = 2.2f) })
+            QCard(padding = 0.dp) {
+                Column(Modifier.padding(horizontal = 18.dp)) {
+                    InfoRow("Last scan", friendlyTime(model.lastScan), null)
+                    Divider()
+                    InfoRow(
+                        "Virus definitions",
+                        if (noDefinitions) "Not downloaded" else if (model.definitionsChecked > 0) "Up to date" else model.definitionsVersion,
+                        if (noDefinitions) t.warn else t.ok,
+                    )
+                    Divider()
+                    InfoRow("Real-time protection", if (model.realtime) "On" else "Off", if (model.realtime) t.ok else t.warn)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Tile("App", Icons.phone, onPickApp, Modifier.weight(1f))
+                Tile("File", Icons.file, onPickFile, Modifier.weight(1f))
+                Tile("Quarantine", Icons.lock, onQuarantine, Modifier.weight(1f))
+                Tile("Audit", Icons.audit, onAudit, Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String, valueColor: androidx.compose.ui.graphics.Color?) {
+    val t = LocalTokens.current
+    Row(Modifier.fillMaxWidth().height(46.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), style = Type.small.copy(fontSize = 14.sp), color = t.muted)
+        Text(value, style = Type.bodyStrong.copy(fontSize = 14.sp), color = valueColor ?: t.text)
+    }
+}
+
+@Composable
+private fun Tile(label: String, icon: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val t = LocalTokens.current
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier
+            .height(76.dp)
+            .clip(shape)
+            .background(t.solid)
+            .border(1.5.dp, t.accent, shape)
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(icon, t.ok, 22.dp)
+        Text(label, Modifier.padding(top = 6.dp), style = Type.label, color = t.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The big status badge: the logo inside dashed and solid rings. */
+@Composable
+fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description: String) {
+    val t = LocalTokens.current
+    Box(Modifier.size(size).semantics { contentDescription = description }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(size)) {
+            val r = this.size.width / 2
+            drawCircle(color.copy(alpha = 0.7f), radius = r - 1.dp.toPx(), style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 6.dp.toPx()))))
+            drawCircle(t.border, radius = r * 0.82f, style = Stroke(1.dp.toPx()))
+            drawArc(color, -90f, 120f, false, topLeft = Offset(r * 0.18f, r * 0.18f), size = androidx.compose.ui.geometry.Size(r * 1.64f, r * 1.64f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+            drawCircle(if (color == t.warn) t.warnSoft else t.okSoft, radius = r * 0.68f)
+        }
+        Glyph(size * 0.49f, color, if (t.dark) t.onAccent else androidx.compose.ui.graphics.Color.White, 7f)
+    }
+}
+
+// ===================================================================== Scanning
+
+@Composable
+fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit) {
+    val t = LocalTokens.current
+    val running = state as? ScanState.Running
+    val done = state as? ScanState.Done
+    val progress = running?.progress
+    val pct = when {
+        done != null -> 100
+        progress != null -> (progress.overall * 100).toInt().coerceIn(0, 99)
+        else -> 0
+    }
+    Screen {
+        TopBar("Full scan", onCancel)
+        Column(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Box(Modifier.size(250.dp).semantics { contentDescription = "Scan progress $pct percent" }, contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(250.dp)) {
+                    val r = size.width / 2
+                    drawCircle(t.accent.copy(alpha = 0.6f), r - 2.dp.toPx(), style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(1.5.dp.toPx(), 7.dp.toPx()))))
+                    val inset = r * 0.17f
+                    val arcSize = androidx.compose.ui.geometry.Size(size.width - inset * 2, size.height - inset * 2)
+                    drawArc(t.border, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(10.dp.toPx()))
+                    drawArc(t.accent, -90f, 360f * pct / 100f, false, Offset(inset, inset), arcSize, style = Stroke(10.dp.toPx(), cap = StrokeCap.Round))
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("$pct%", style = Type.title.copy(fontSize = 56.sp, fontWeight = FontWeight.Normal, lineHeight = 60.sp), color = t.text)
+                    MonoLabel(if (done != null) "Complete" else "Scanning")
+                }
+            }
+            Text(
+                when {
+                    done != null -> "Scan complete"
+                    progress != null -> "> ${progress.current}"
+                    else -> "Preparing…"
+                },
+                style = Type.small.copy(fontFamily = Mono), color = t.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            QCard(padding = 0.dp) {
+                Column(Modifier.padding(horizontal = 18.dp)) {
+                    DeviceScanner.Stage.entries.forEachIndexed { i, stage ->
+                        val count = progress?.counts?.get(stage) ?: 0
+                        val active = progress?.stage == stage
+                        val finished = done != null || (progress != null && progress.stage.ordinal > stage.ordinal)
+                        Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                when { finished -> Icons.checkCircle; else -> Icons.waiting },
+                                when { finished -> t.ok; active -> t.accent; else -> t.muted },
+                                22.dp,
+                            )
+                            Text(stage.label, Modifier.padding(start = 12.dp).weight(1f), style = Type.body.copy(fontWeight = FontWeight.Medium), color = t.text)
+                            Text(
+                                if (count == 0 && !active && !finished) "—" else if (stage == DeviceScanner.Stage.APPS) "$count apps" else "$count files",
+                                style = Type.small.copy(fontFamily = Mono), color = t.muted,
+                            )
+                        }
+                        if (i < 2) Divider()
+                    }
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            if (done != null) {
+                QButton("View results", onResults, Modifier.fillMaxWidth(), height = 56.dp)
+            } else {
+                QButton("Cancel scan", onCancel, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 56.dp)
+            }
+        }
+    }
+}
+
+// ===================================================================== Results
+
+@Composable
+fun ResultsScreen(
+    summary: DeviceScanner.Summary?,
+    threats: List<Finding>,
+    onResolve: (Finding, Resolution) -> Boolean,
+    onUninstall: (String) -> Unit,
+    onQuarantine: () -> Unit,
+    onDone: () -> Unit,
+) {
+    val t = LocalTokens.current
+    Screen {
+        TopBar("Scan results", onDone)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (threats.isEmpty()) {
+                QCard(radius = 28.dp, padding = 32.dp) {
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatusRing(t.ok, 120.dp, "No threats")
+                        Text("No threats found", style = Type.title.copy(fontSize = 24.sp), color = t.ok)
+                        if (summary != null) Text("${summary.apps} apps and ${summary.files} files checked", style = Type.body, color = t.muted)
+                    }
+                }
+            } else {
+                QCard(background = t.warnSoft, borderColor = t.warn) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.shieldAlert, t.warn, 40.dp, strokeWidth = 1.8f)
+                        Column(Modifier.padding(start = 14.dp)) {
+                            Text("${threats.size} ${if (threats.size == 1) "threat" else "threats"} found", style = Type.heading, color = t.warn)
+                            if (summary != null) MonoLabel("${summary.apps} APPS · ${summary.files} FILES CHECKED")
+                        }
+                    }
+                }
+                threats.forEach { f -> ThreatCard(f, onResolve, onUninstall, onQuarantine) }
+            }
+            Spacer(Modifier.height(4.dp))
+            QButton("Done", onDone, Modifier.fillMaxWidth(), height = 56.dp)
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninstall: (String) -> Unit, onQuarantine: () -> Unit) {
+    val t = LocalTokens.current
+    var details by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    val pkg = AppState.packageOf(f)
+    val known = f as? Finding.KnownThreat
+    QCard(padding = 18.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Initials(f.title, 50.dp)
+                Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                    Text(f.title, style = Type.bodyStrong.copy(fontSize = 17.sp), color = t.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(if (pkg != null) "Installed app" else "File", style = Type.small, color = t.muted)
+                }
+                Chip(if (known != null) "Dangerous" else "High risk", t.warn, t.warnSoft)
+            }
+            Text(
+                if (known != null) "Matches known malware. It can harm your phone or steal data, so it should be removed."
+                else (f as Finding.RiskyApp).report.reasons.joinToString(". ", postfix = "."),
+                style = Type.body, color = t.muted,
+            )
+            Text(
+                if (details) "Hide technical details" else "Show technical details",
+                Modifier.clickable(role = Role.Button) { details = !details }.padding(vertical = 6.dp),
+                style = Type.bodyStrong.copy(fontSize = 14.sp), color = t.accent,
+            )
+            if (details) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(t.ghost).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val lines = buildList {
+                        if (known != null) add("DETECTION  ${known.detection}")
+                        if (f is Finding.RiskyApp) add("RISK SCORE ${f.report.score}/100")
+                        pkg?.let { add("PACKAGE    $it") }
+                        known?.path?.let { add("PATH       $it") }
+                    }
+                    lines.forEach { Text(it, style = Type.small.copy(fontFamily = Mono, fontSize = 12.sp), color = t.muted) }
+                }
+            }
+            message?.let { Text(it, style = Type.small, color = t.warn) }
+            if (pkg != null) {
+                QButton("Uninstall app", { onUninstall(pkg) }, Modifier.fillMaxWidth(), kind = ButtonKind.DANGER, height = 52.dp)
+                QButton("I trust it", { onResolve(f, Resolution.IGNORE) }, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 48.dp)
+            } else {
+                QButton("Move to quarantine", {
+                    if (!onResolve(f, Resolution.QUARANTINE)) message = "Couldn't move the file. Check that all files access is on." else onQuarantine()
+                }, Modifier.fillMaxWidth(), kind = ButtonKind.DANGER, height = 52.dp)
+                QButton("I trust it", { onResolve(f, Resolution.IGNORE) }, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 48.dp)
+            }
+        }
+    }
+}

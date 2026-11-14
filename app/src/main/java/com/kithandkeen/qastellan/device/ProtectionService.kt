@@ -77,17 +77,37 @@ class ProtectionService : Service() {
     }
 
     private fun scanFile(file: File) {
-        Qastellan.from(this).scanner.scanFile(file)?.let { Notifications.threat(this, it) }
+        val app = Qastellan.from(this)
+        app.scanner.scanFile(file)?.let {
+            app.state.reportRealtime(it)
+            Notifications.threat(this, it)
+        }
     }
 
     private fun scanPackage(packageName: String) {
+        val app = Qastellan.from(this)
+        if (!app.prefs.scanNewApps) return
         val (facts, apk) = AppInspector(this).inspect(packageName) ?: return
-        Qastellan.from(this).scanner.scanApp(facts, apk)?.let { Notifications.threat(this, it) }
+        val finding = app.scanner.scanApp(facts, apk)
+        if (finding != null) {
+            app.state.reportRealtime(finding)
+            Notifications.threat(this, finding)
+        } else {
+            app.state.history.add(
+                com.kithandkeen.qastellan.data.HistoryEvent(
+                    com.kithandkeen.qastellan.data.HistoryEvent.Kind.NEW_APP, "New app checked", "${facts.label} · safe",
+                ),
+            )
+        }
     }
 
     companion object {
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, ProtectionService::class.java))
+        }
+
+        fun stop(context: Context) {
+            context.stopService(Intent(context, ProtectionService::class.java))
         }
     }
 }
@@ -95,7 +115,8 @@ class ProtectionService : Service() {
 /** Restarts real-time protection after the phone reboots or the app updates. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+        val prefs = Qastellan.from(context).prefs
+        if ((intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) && prefs.onboarded && prefs.realtime) {
             ProtectionService.start(context)
         }
     }

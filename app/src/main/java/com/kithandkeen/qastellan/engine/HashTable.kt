@@ -57,7 +57,7 @@ class HashTable private constructor(private val buffer: ByteBuffer, val size: In
         fun fromBuffer(buffer: ByteBuffer): HashTable {
             val buf = buffer.duplicate().order(ByteOrder.BIG_ENDIAN)
             require(buf.capacity() >= HEADER_BYTES) { "file too small" }
-            val magic = ByteArray(4).also { buf.get(0, it) }
+            val magic = ByteArray(4) { buf.get(it) }
             require(magic.contentEquals(MAGIC)) { "not a QHS1 table" }
             val count = buf.getInt(4)
             require(count >= 0 && buf.capacity().toLong() >= HEADER_BYTES + count.toLong() * RECORD_BYTES) {

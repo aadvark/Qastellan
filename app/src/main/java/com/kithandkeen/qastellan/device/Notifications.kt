@@ -33,7 +33,7 @@ object Notifications {
         NotificationCompat.Builder(context, CHANNEL_PROTECTION)
             .setSmallIcon(R.drawable.ic_shield)
             .setContentTitle(context.getString(R.string.protection_on))
-            .setContentIntent(openApp(context))
+            .setContentIntent(openApp(context, null))
             .setOngoing(true)
             .build()
 
@@ -53,16 +53,28 @@ object Notifications {
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(openApp(context))
+            .setContentIntent(openApp(context, finding))
             .setAutoCancel(true)
             .build()
         NotificationManagerCompat.from(context).notify(finding.title.hashCode(), notification)
     }
 
-    private fun openApp(context: Context) = PendingIntent.getActivity(
-        context,
-        0,
-        Intent(context, MainActivity::class.java),
-        PendingIntent.FLAG_IMMUTABLE,
-    )
+    const val EXTRA_ALERT_PACKAGE = "alert_package"
+    const val EXTRA_SHOW_RESULTS = "show_results"
+
+    private fun openApp(context: Context, finding: Finding? = null): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pkg = when (finding) {
+            is Finding.KnownThreat -> finding.packageName
+            is Finding.RiskyApp -> finding.packageName
+            null -> null
+        }
+        if (pkg != null) intent.putExtra(EXTRA_ALERT_PACKAGE, pkg) else if (finding != null) intent.putExtra(EXTRA_SHOW_RESULTS, true)
+        return PendingIntent.getActivity(
+            context,
+            pkg?.hashCode() ?: finding?.title?.hashCode() ?: 0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
 }

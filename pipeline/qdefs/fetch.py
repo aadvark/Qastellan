@@ -15,6 +15,7 @@ from pathlib import Path
 MVT_INDEX = "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/indicators.yaml"
 # Full MalwareBazaar dump; the free abuse.ch Auth-Key goes in the URL path.
 MB_FULL_CSV = "https://mb-api.abuse.ch/v2/files/exports/{key}/full.csv.zip"
+EXODUS_TRACKERS = "https://reports.exodus-privacy.eu.org/api/trackers"
 USER_AGENT = "Qastellan-definitions/1 (+https://github.com/aadvark/Qastellan)"
 
 
@@ -65,6 +66,8 @@ def main(argv: list[str] | None = None) -> None:
         download(MB_FULL_CSV.format(key=key), dest / "malwarebazaar_full.csv.zip", label="MalwareBazaar full export")
     else:
         print("notice: MB_AUTH_KEY not set, skipping MalwareBazaar", file=sys.stderr)
+
+    download(EXODUS_TRACKERS, dest / "exodus_trackers.json")
 
     index = dest / "mvt_indicators.yaml"
     if download(MVT_INDEX, index):

@@ -103,6 +103,16 @@ def build(args: argparse.Namespace) -> dict:
     (out / "names.txt").write_text("\n".join(names) + "\n", encoding="utf-8")
     files["names.txt"] = {"records": len(names)}
 
+    trackers = []
+    if args.trackers:
+        try:
+            trackers = formats.read_exodus_trackers(json.loads(Path(args.trackers).read_text(encoding="utf-8")))
+            counts["exodus"] = len(trackers)
+        except Exception as exc:
+            print(f"warning: skipped trackers: {exc}", file=sys.stderr)
+    (out / "trackers.txt").write_text("".join(f"{n}\t{c}\t{'|'.join(p)}\n" for n, c, p in trackers), encoding="utf-8")
+    files["trackers.txt"] = {"records": len(trackers)}
+
     unique_pkgs = sorted(dict(packages).items())
     (out / "packages.txt").write_text("".join(f"{p}\t{n}\n" for p, n in unique_pkgs), encoding="utf-8")
     files["packages.txt"] = {"records": len(unique_pkgs)}
@@ -139,6 +149,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--mb-api-json", help="Saved MalwareBazaar API response")
     p.add_argument("--stix-dir", help="Folder of .stix2 indicator files")
     p.add_argument("--extra", help="Qastellan's own signatures file")
+    p.add_argument("--trackers", help="Exodus Privacy trackers API response (JSON)")
     p.add_argument("--key-env", default="QASTELLAN_SIGNING_KEY")
     p.add_argument("--allow-unsigned", action="store_true")
     return p

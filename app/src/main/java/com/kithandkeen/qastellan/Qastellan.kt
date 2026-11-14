@@ -2,7 +2,10 @@ package com.kithandkeen.qastellan
 
 import android.app.Application
 import android.content.Context
+import com.kithandkeen.qastellan.data.AppState
 import com.kithandkeen.qastellan.device.Notifications
+import com.kithandkeen.qastellan.device.ProtectionService
+import com.kithandkeen.qastellan.ui.theme.Appearance
 import com.kithandkeen.qastellan.engine.Definitions
 import com.kithandkeen.qastellan.engine.Scanner
 import com.kithandkeen.qastellan.update.DefinitionState
@@ -22,6 +25,9 @@ class Qastellan : Application() {
 
     val scanner by lazy { Scanner({ definitions }) }
 
+    /** Shared state behind every screen. */
+    val state by lazy { AppState(this) }
+
     val updater by lazy {
         DefinitionUpdater(
             baseUrl = BuildConfig.DEFINITIONS_URL,
@@ -38,7 +44,8 @@ class Qastellan : Application() {
         reloadDefinitions()
         // Every start: check the app and the definitions for updates, then keep the daily check scheduled.
         UpdateWork.checkOnStartup(this)
-        UpdateWork.scheduleDaily(this, prefs.wifiOnly)
+        if (prefs.autoUpdate) UpdateWork.scheduleDaily(this, prefs.wifiOnly) else UpdateWork.cancelDaily(this)
+        if (prefs.onboarded && prefs.realtime) runCatching { ProtectionService.start(this) }
     }
 
     fun reloadDefinitions() {
@@ -82,4 +89,33 @@ class Prefs(context: Context) : DefinitionState {
     var appUpdateUrl: String?
         get() = sp.getString("app_update_url", null)
         set(value) = sp.edit().putString("app_update_url", value).apply()
+
+    var appearance: Appearance
+        get() = runCatching { Appearance.valueOf(sp.getString("appearance", "SYSTEM")!!) }.getOrDefault(Appearance.SYSTEM)
+        set(value) = sp.edit().putString("appearance", value.name).apply()
+
+    var realtime: Boolean
+        get() = sp.getBoolean("realtime", true)
+        set(value) = sp.edit().putBoolean("realtime", value).apply()
+
+    var scanNewApps: Boolean
+        get() = sp.getBoolean("scan_new_apps", true)
+        set(value) = sp.edit().putBoolean("scan_new_apps", value).apply()
+
+    var autoUpdate: Boolean
+        get() = sp.getBoolean("auto_update", true)
+        set(value) = sp.edit().putBoolean("auto_update", value).apply()
+
+    var onboarded: Boolean
+        get() = sp.getBoolean("onboarded", false)
+        set(value) = sp.edit().putBoolean("onboarded", value).apply()
+
+    var lastScan: Long
+        get() = sp.getLong("last_scan", 0)
+        set(value) = sp.edit().putLong("last_scan", value).apply()
+
+    /** Apps and files the user marked as trusted ("pkg:..." / "file:..."). */
+    var ignored: Set<String>
+        get() = sp.getStringSet("ignored", emptySet())!!.toSet()
+        set(value) = sp.edit().putStringSet("ignored", value).apply()
 }

@@ -42,6 +42,10 @@ object UpdateWork {
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(DAILY, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
+    fun cancelDaily(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(DAILY)
+    }
+
     /** A new version was found on mobile data with "Wi-Fi only" on: download it once Wi-Fi is back. */
     fun downloadWhenUnmetered(context: Context) {
         val request = OneTimeWorkRequestBuilder<UpdateWorker>()
@@ -65,8 +69,12 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         // 1. Definitions. The check itself is a few hundred bytes, so it runs on any network;
         //    the files download only when allowed.
         val allowDownload = !app.prefs.wifiOnly || UpdateWork.isUnmetered(applicationContext)
+        var installed: String? = null
         when (val result = app.updater.update(allowDownload)) {
-            is DefinitionUpdater.Result.Updated -> app.reloadDefinitions()
+            is DefinitionUpdater.Result.Updated -> {
+                app.reloadDefinitions()
+                installed = result.version
+            }
             is DefinitionUpdater.Result.Waiting -> UpdateWork.downloadWhenUnmetered(applicationContext)
             else -> Unit
         }
@@ -86,6 +94,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 AppUpdate.Unknown -> Unit
             }
         }
+        app.state.onUpdateChecked(installed)
         Result.success()
     }
 }

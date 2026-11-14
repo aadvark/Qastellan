@@ -63,6 +63,7 @@ jobs:
             [ -f "$f" ] && args+=(--clamav "$f")
           done
           [ -f sources/malwarebazaar_full.csv.zip ] && args+=(--mb-csv sources/malwarebazaar_full.csv.zip)
+          [ -f sources/exodus_trackers.json ] && args+=(--trackers sources/exodus_trackers.json)
           python -m qdefs.build "${args[@]}"
 
       - name: Publish to the "definitions" release

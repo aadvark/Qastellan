@@ -10,7 +10,10 @@ class Definitions(
     private val sha256: HashTable,
     private val names: List<String>,
     private val packages: Map<String, String>,
+    val trackers: List<Tracker> = emptyList(),
 ) {
+    val trackerDetector: TrackerDetector by lazy { TrackerDetector(trackers) }
+
     /** Detection name for a file's hashes, or null when the file is clean. */
     fun match(hashes: FileHashes): String? {
         val id = sha256.lookup(hashes.sha256) ?: sha1.lookup(hashes.sha1) ?: md5.lookup(hashes.md5)
@@ -32,7 +35,8 @@ class Definitions(
             val packages = File(dir, "packages.txt").takeIf { it.exists() }?.readLines()
                 ?.mapNotNull { line -> line.split('\t').takeIf { it.size == 2 }?.let { it[0] to it[1] } }
                 ?.toMap() ?: emptyMap()
-            return Definitions(version, table("md5.qhs"), table("sha1.qhs"), table("sha256.qhs"), names, packages)
+            val trackers = File(dir, "trackers.txt").takeIf { it.exists() }?.readLines()?.let(TrackerDetector::parse) ?: emptyList()
+            return Definitions(version, table("md5.qhs"), table("sha1.qhs"), table("sha256.qhs"), names, packages, trackers)
         }
     }
 }

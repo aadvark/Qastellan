@@ -37,7 +37,7 @@ class ManifestVerifier(publicKeyBase64: String) {
         const val SUPPORTED_FORMAT = 1
 
         /** Allowed file names; anything else in a manifest is ignored, never written to disk. */
-        val KNOWN_FILES = setOf("md5.qhs", "sha1.qhs", "sha256.qhs", "names.txt", "packages.txt")
+        val KNOWN_FILES = setOf("md5.qhs", "sha1.qhs", "sha256.qhs", "names.txt", "packages.txt", "trackers.txt")
 
         fun sha256Hex(bytes: ByteArray): String =
             MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }

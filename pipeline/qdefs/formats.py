@@ -215,3 +215,35 @@ def lookup(records: list[tuple[int, int]], digest: str) -> int | None:
         else:
             hi = mid - 1
     return None
+
+
+# --------------------------------------------------------------------------- Exodus Privacy trackers
+
+_REGEX_LEFTOVER = re.compile(r"[\\^$*+?()\[\]{}]")
+
+
+def read_exodus_trackers(payload: dict) -> list[tuple[str, str, list[str]]]:
+    """(name, category, class-name prefixes) from Exodus Privacy's tracker API.
+
+    Code signatures are regular expressions over Java class names, nearly all
+    plain prefixes such as "com.adform.sdk.". Those are kept (escaped dots
+    unescaped); anything still containing regex syntax is skipped rather than
+    risking false matches on the phone.
+    """
+    out: list[tuple[str, str, list[str]]] = []
+    trackers = (payload.get("trackers") or {}).values()
+    for t in trackers:
+        name = (t.get("name") or "").strip().replace("\t", " ")
+        sig = (t.get("code_signature") or "").strip()
+        if not name or not sig:
+            continue
+        prefixes = []
+        for part in sig.split("|"):
+            part = part.strip().replace("\\.", ".")
+            if len(part) < 4 or _REGEX_LEFTOVER.search(part):
+                continue
+            prefixes.append(part)
+        if prefixes:
+            cats = t.get("categories") or []
+            out.append((name, (cats[0] if cats else "Tracker").replace("\t", " "), sorted(set(prefixes))))
+    return sorted(out, key=lambda x: x[0].lower())

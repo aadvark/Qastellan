@@ -153,3 +153,22 @@ indicators:
     assert stix_urls(yaml_text) == [
         ("000-pegasus.stix2", "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2021-07-18_nso/pegasus.stix2")
     ]
+
+
+def test_exodus_trackers_become_prefix_lists(tmp_path: Path, sources: Path) -> None:
+    payload = {"trackers": {
+        "1": {"name": "Adform", "code_signature": "com.adform.sdk.", "categories": ["Advertisement"]},
+        "2": {"name": "Odd", "code_signature": "^com\\.odd\\.(a|b)$", "categories": []},
+        "3": {"name": "Adjoe", "code_signature": "io.adjoe.sdk.|io.adjoe.protection.", "categories": ["Advertisement"]},
+        "4": {"name": "Empty", "code_signature": "", "categories": []},
+    }}
+    (sources / "trackers.json").write_text(json.dumps(payload))
+    out = tmp_path / "out"
+    manifest = run_build(sources, out, "--allow-unsigned", "--trackers", str(sources / "trackers.json"))
+    lines = (out / "trackers.txt").read_text().splitlines()
+    assert lines == [
+        "Adform\tAdvertisement\tcom.adform.sdk.",
+        "Adjoe\tAdvertisement\tio.adjoe.protection.|io.adjoe.sdk.",
+    ]
+    assert manifest["sources"]["exodus"] == 2
+    assert "trackers.txt" in manifest["files"]
