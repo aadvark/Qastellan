@@ -77,6 +77,7 @@ data class HomeModel(
     val realtime: Boolean,
     val appUpdate: String?,
     val appUpdateUrl: String?,
+    val fileAccess: Boolean = true,
 )
 
 @Composable
@@ -90,6 +91,7 @@ fun HomeScreen(
     onAudit: () -> Unit,
     onSettings: () -> Unit,
     onTab: (Tab) -> Unit,
+    onAllowFiles: () -> Unit = {},
 ) {
     val t = LocalTokens.current
     val context = LocalContext.current
@@ -118,6 +120,17 @@ fun HomeScreen(
                         QButton("Get it", {
                             model.appUpdateUrl?.let { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }
                         }, height = 40.dp)
+                    }
+                }
+            }
+            if (!model.fileAccess) {
+                QCard(padding = 14.dp, background = t.warnSoft, borderColor = t.warn) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Downloads aren't being checked", style = Type.bodyStrong, color = t.text)
+                            Text("Allow all files access so Qastellan can scan downloads and remove infected files.", style = Type.small, color = t.muted)
+                        }
+                        QButton("Allow", onAllowFiles, Modifier.padding(start = 10.dp), kind = ButtonKind.DANGER, height = 40.dp)
                     }
                 }
             }
@@ -304,6 +317,7 @@ fun ResultsScreen(
     onUninstall: (String) -> Unit,
     onQuarantine: () -> Unit,
     onDone: () -> Unit,
+    onAllowFiles: () -> Unit = {},
 ) {
     val t = LocalTokens.current
     Screen {
@@ -327,7 +341,7 @@ fun ResultsScreen(
                         }
                     }
                 }
-                threats.forEach { f -> ThreatCard(f, onResolve, onUninstall, onQuarantine) }
+                threats.forEach { f -> ThreatCard(f, onResolve, onUninstall, onQuarantine, onAllowFiles) }
             }
             Spacer(Modifier.height(4.dp))
             QButton("Done", onDone, Modifier.fillMaxWidth(), height = 56.dp)
@@ -337,10 +351,12 @@ fun ResultsScreen(
 }
 
 @Composable
-fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninstall: (String) -> Unit, onQuarantine: () -> Unit) {
+fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninstall: (String) -> Unit, onQuarantine: () -> Unit, onAllowFiles: () -> Unit = {}) {
     val t = LocalTokens.current
     var details by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var needsAccess by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val pkg = AppState.packageOf(f)
     val known = f as? Finding.KnownThreat
     QCard(padding = 18.dp) {
@@ -375,12 +391,27 @@ fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninst
                 }
             }
             message?.let { Text(it, style = Type.small, color = t.warn) }
+            if (needsAccess) QButton("Allow all files access", onAllowFiles, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 44.dp)
             if (pkg != null) {
                 QButton("Uninstall app", { onUninstall(pkg) }, Modifier.fillMaxWidth(), kind = ButtonKind.DANGER, height = 52.dp)
                 QButton("I trust it", { onResolve(f, Resolution.IGNORE) }, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 48.dp)
+            } else if (known?.sourceUri != null) {
+                // Picked with Scan file: Qastellan only has the file through the picker, so it can delete it but not move it.
+                QButton("Delete file", {
+                    if (!onResolve(f, Resolution.DELETE)) message = "Couldn't delete it from here. Open your Files app and delete ${f.title} there."
+                }, Modifier.fillMaxWidth(), kind = ButtonKind.DANGER, height = 52.dp)
             } else {
                 QButton("Move to quarantine", {
-                    if (!onResolve(f, Resolution.QUARANTINE)) message = "Couldn't move the file. Check that all files access is on." else onQuarantine()
+                    if (onResolve(f, Resolution.QUARANTINE)) {
+                        onQuarantine()
+                    } else if (!com.kithandkeen.qastellan.device.StorageAccess.canReadAllFiles(context)) {
+                        message = "Qastellan needs all files access to move this file."
+                        needsAccess = true
+                    } else if (known?.path?.let { java.io.File(it).exists() } == false) {
+                        message = "The file is no longer there. It may have been moved or deleted already."
+                    } else {
+                        message = "Couldn't move the file. Try again, or delete it in your Files app."
+                    }
                 }, Modifier.fillMaxWidth(), kind = ButtonKind.DANGER, height = 52.dp)
                 QButton("I trust it", { onResolve(f, Resolution.IGNORE) }, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 48.dp)
             }

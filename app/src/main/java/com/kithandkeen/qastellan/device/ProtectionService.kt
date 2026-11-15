@@ -62,7 +62,8 @@ class ProtectionService : Service() {
         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val mask = FileObserver.CLOSE_WRITE or FileObserver.MOVED_TO
         val onEvent: (String?) -> Unit = { name ->
-            if (name != null) worker.execute { scanFile(File(dir, name)) }
+            // Skip unfinished downloads: the finished file arrives under its real name (MOVED_TO).
+            if (name != null && !name.startsWith(".pending-")) worker.execute { scanFile(File(dir, name)) }
         }
         observer = if (Build.VERSION.SDK_INT >= 29) {
             object : FileObserver(dir, mask) {
@@ -104,6 +105,12 @@ class ProtectionService : Service() {
     companion object {
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, ProtectionService::class.java))
+        }
+
+        /** Restart so a newly granted permission (all files access) takes effect. */
+        fun restart(context: Context) {
+            stop(context)
+            start(context)
         }
 
         fun stop(context: Context) {

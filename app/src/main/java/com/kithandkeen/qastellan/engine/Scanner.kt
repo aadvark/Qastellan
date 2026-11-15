@@ -5,7 +5,14 @@ import java.io.File
 sealed class Finding {
     abstract val title: String
 
-    data class KnownThreat(override val title: String, val detection: String, val path: String?, val packageName: String?) : Finding()
+    data class KnownThreat(
+        override val title: String,
+        val detection: String,
+        val path: String?,
+        val packageName: String?,
+        /** For a file the user picked with Scan file: where it really is (a content URI). */
+        val sourceUri: String? = null,
+    ) : Finding()
     data class RiskyApp(override val title: String, val packageName: String, val report: RiskReport) : Finding()
 }
 
@@ -22,7 +29,12 @@ class Scanner(
             return null // file vanished or is unreadable; nothing to report
         }
         val name = definitions().match(hashes) ?: return null
-        return Finding.KnownThreat(file.name, name, file.absolutePath, null)
+        return Finding.KnownThreat(displayName(file.name), name, file.absolutePath, null)
+    }
+
+    companion object {
+        /** Android names unfinished and trashed downloads ".pending-<time>-name" or ".trashed-<time>-name". */
+        fun displayName(name: String): String = name.replace(Regex("^\\.(pending|trashed)-\\d+-"), "")
     }
 
     /** Checks an installed app: its package name, its APK's hashes, then its behaviour. */

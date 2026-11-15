@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kithandkeen.qastellan.device.Notifications
 import com.kithandkeen.qastellan.device.SecurityAudit
 import com.kithandkeen.qastellan.device.StorageAccess
+import com.kithandkeen.qastellan.device.ProtectionService
 import com.kithandkeen.qastellan.ui.screens.AboutScreen
 import com.kithandkeen.qastellan.ui.screens.AlertScreen
 import com.kithandkeen.qastellan.ui.screens.AppDetailScreen
@@ -177,8 +178,17 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
             )
         }
         composable(Routes.HOME) {
+            // Re-checked when Home comes back, e.g. after granting it in system settings.
+            var fileAccess by remember { mutableStateOf(StorageAccess.canReadAllFiles(context)) }
+            LifecycleResumeEffect(Unit) {
+                val now = StorageAccess.canReadAllFiles(context)
+                if (now && !fileAccess && settings.realtime) ProtectionService.restart(context)
+                fileAccess = now
+                onPauseOrDispose {}
+            }
             HomeScreen(
-                HomeModel(threats.size, settings.lastScan, definitions.version, definitions.lastCheck, settings.realtime, settings.appUpdateVersion, settings.appUpdateUrl),
+                HomeModel(threats.size, settings.lastScan, definitions.version, definitions.lastCheck, settings.realtime, settings.appUpdateVersion, settings.appUpdateUrl, fileAccess),
+                onAllowFiles = { StorageAccess.requestIntent(context)?.let { runCatching { context.startActivity(it) } } },
                 onScan = ::startScan,
                 onReview = { nav.navigate(Routes.RESULTS) },
                 onPickApp = { tab(Tab.APPS) },
@@ -205,7 +215,8 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                 threats,
                 onResolve = state::resolve,
                 onUninstall = uninstall,
-                onQuarantine = {},
+                onQuarantine = { nav.navigate(Routes.QUARANTINE) },
+                onAllowFiles = { StorageAccess.requestIntent(context)?.let { runCatching { context.startActivity(it) } } },
                 onDone = {
                     state.clearScanResult()
                     if (!nav.popBackStack(Routes.HOME, false)) nav.navigate(Routes.HOME)
@@ -309,6 +320,6 @@ private fun scanPicked(uri: Uri, context: android.content.Context, state: AppSta
         }.getOrNull() ?: "Picked file"
         val copy = File(context.cacheDir, "picked-${System.currentTimeMillis()}")
         val ok = runCatching { context.contentResolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } } != null }.getOrDefault(false)
-        if (ok) state.scanPickedFile(copy, name)
+        if (ok) state.scanPickedFile(copy, name, uri.toString())
     }
 }

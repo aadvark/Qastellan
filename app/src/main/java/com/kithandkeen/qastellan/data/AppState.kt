@@ -29,7 +29,7 @@ sealed class ScanState {
 }
 
 /** What the user chose to do with a finding. */
-enum class Resolution { UNINSTALL, QUARANTINE, IGNORE }
+enum class Resolution { UNINSTALL, QUARANTINE, DELETE, IGNORE }
 
 /**
  * The app's single source of truth for the screens: scan progress, open threats,
@@ -117,9 +117,10 @@ class AppState(private val context: Context) {
     }
 
     /** Scan a single file the user picked (Home > File). */
-    fun scanPickedFile(file: File, displayName: String) = scope.launch {
+    fun scanPickedFile(file: File, displayName: String, sourceUri: String) = scope.launch {
         val finding = app.scanner.scanFile(file)?.let {
-            if (it is Finding.KnownThreat) it.copy(title = displayName) else it
+            // The scanned file is a temporary copy; remember where the real one is.
+            if (it is Finding.KnownThreat) it.copy(title = displayName, path = null, sourceUri = sourceUri) else it
         }
         val summary = DeviceScanner.Summary(listOfNotNull(finding), 0, 1, 0, false, fileName = displayName)
         if (finding != null) {
@@ -142,6 +143,14 @@ class AppState(private val context: Context) {
     fun resolve(finding: Finding, how: Resolution): Boolean {
         val ok = when (how) {
             Resolution.UNINSTALL -> true // the system uninstall dialog is shown by the screen
+            Resolution.DELETE -> {
+                val uri = (finding as? Finding.KnownThreat)?.sourceUri?.let(android.net.Uri::parse)
+                val deleted = uri != null && runCatching {
+                    android.provider.DocumentsContract.deleteDocument(context.contentResolver, uri)
+                }.recoverCatching { context.contentResolver.delete(uri!!, null, null) > 0 }.getOrDefault(false)
+                if (deleted) history.add(HistoryEvent(HistoryEvent.Kind.ACTION, "Deleted file", finding.title))
+                deleted
+            }
             Resolution.IGNORE -> {
                 prefs.ignored = prefs.ignored + keyOf(finding)
                 history.add(HistoryEvent(HistoryEvent.Kind.ACTION, "Marked as trusted", finding.title))
