@@ -1,5 +1,6 @@
 name: Release
 
+# Versions before 1.0 are published as pre-releases.
 # Push a tag like v0.2.0 (matching versionName in app/build.gradle.kts) to publish
 # a signed APK to GitHub Releases. The website's download button always points to
 # the newest release's qastellan.apk.
@@ -55,7 +56,10 @@ jobs:
           cp app/build/outputs/apk/github/release/app-github-release.apk "dist/qastellan-$VERSION.apk"
           cp "dist/qastellan-$VERSION.apk" dist/qastellan.apk
           (cd dist && sha256sum qastellan-*.apk qastellan.apk > SHA256SUMS.txt)
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          # Versions before 1.0 (and ones like 1.1.0-beta1) are test builds: pre-releases.
+          prerelease=""
+          case "$VERSION" in 0.*|*-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* $prerelease \
             --title "Qastellan $VERSION" \
             --notes "Download **qastellan.apk** below and open it on your Android phone (Android 8.0+).
 
