@@ -27,6 +27,8 @@
 
     <!-- Opens the system "Uninstall this app?" dialog for a threat -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Keeps real-time protection running on phones that stop background apps -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".Qastellan"

@@ -74,11 +74,24 @@ fun SettingsScreen(
     onAppearance: (Appearance) -> Unit,
     onAbout: () -> Unit,
     onTab: (Tab) -> Unit,
+    batteryRestricted: Boolean = false,
+    onFixBattery: () -> Unit = {},
 ) {
     val t = LocalTokens.current
     Screen(bottomBar = { BottomNav(Tab.PROTECTION, onTab) }) {
         BigTitle("Protection")
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (batteryRestricted && settings.realtime) {
+                QCard(padding = 14.dp, background = t.warnSoft, borderColor = t.warn) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Your phone may stop real-time protection", style = Type.bodyStrong, color = t.text)
+                            Text("Battery saving can close Qastellan in the background.", style = Type.small, color = t.muted)
+                        }
+                        QButton("Fix", onFixBattery, Modifier.padding(start = 10.dp), kind = ButtonKind.DANGER, height = 40.dp)
+                    }
+                }
+            }
             QCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
                     Toggle(settings.realtime, "Real-time protection", "Check downloads as they arrive", onRealtime)
@@ -248,7 +261,7 @@ fun AuditScreen(checks: List<AuditCheck>, onFix: (AuditCheck) -> Unit, onBack: (
 
 // ===================================================================== Onboarding
 
-enum class OnboardingStep { WELCOME, APPS, FILES, NOTIFICATIONS, DONE }
+enum class OnboardingStep { WELCOME, APPS, FILES, NOTIFICATIONS, BATTERY, DONE }
 
 @Composable
 fun OnboardingScreen(step: OnboardingStep, onNext: () -> Unit, onAllow: () -> Unit, onFirstScan: () -> Unit) {
@@ -288,14 +301,15 @@ fun OnboardingScreen(step: OnboardingStep, onNext: () -> Unit, onAllow: () -> Un
                     val (icon, title, why, note, allow) = when (step) {
                         OnboardingStep.APPS -> Step(Icons.apps, "See your apps", "Qastellan looks at the list of installed apps to check each one for malware and hidden trackers.", "App names and files are checked on your phone. Nothing is uploaded.", "Continue")
                         OnboardingStep.FILES -> Step(Icons.file, "Scan your files", "Infected files usually arrive as downloads. All files access lets Qastellan check them the moment they land.", "Without it, only installed apps are scanned.", "Allow file access")
+                        OnboardingStep.BATTERY -> Step(Icons.shield, "Stay on guard", "Some phones stop apps in the background to save battery. Letting Qastellan run keeps real-time protection on after you close it.", "It checks new apps and downloads only when they arrive, so battery use stays low.", "Allow background use")
                         else -> Step(Icons.bell, "Get warnings", "If a risky app is installed, Qastellan warns you straight away so you can remove it before it does harm.", "Qastellan never sends ads or promotions.", "Allow notifications")
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
-                        (1..3).forEach { i -> Box(Modifier.height(6.dp).width(if (i == n) 22.dp else 6.dp).clip(RoundedCornerShape(3.dp)).background(if (i <= n) t.accent else t.border)) }
+                        (1..4).forEach { i -> Box(Modifier.height(6.dp).width(if (i == n) 22.dp else 6.dp).clip(RoundedCornerShape(3.dp)).background(if (i <= n) t.accent else t.border)) }
                     }
                     Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)) {
                         Box(Modifier.size(112.dp).clip(CircleShape).background(t.ghost).border(1.dp, t.border, CircleShape), contentAlignment = Alignment.Center) { Icon(icon, t.accent, 48.dp, strokeWidth = 1.6f) }
-                        MonoLabel("Step $n of 3")
+                        MonoLabel("Step $n of 4")
                         Text(title, style = Type.title, color = t.text)
                         Text(why, style = Type.body, color = t.muted, textAlign = TextAlign.Center)
                         Text(note, style = Type.small, color = t.muted, textAlign = TextAlign.Center)

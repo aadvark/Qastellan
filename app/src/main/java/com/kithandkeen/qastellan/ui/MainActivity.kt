@@ -33,6 +33,8 @@ import com.kithandkeen.qastellan.Qastellan
 import com.kithandkeen.qastellan.data.AppState
 import com.kithandkeen.qastellan.data.ScanState
 import com.kithandkeen.qastellan.device.AppReport
+import com.kithandkeen.qastellan.device.BatteryAccess
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kithandkeen.qastellan.device.Notifications
 import com.kithandkeen.qastellan.device.SecurityAudit
 import com.kithandkeen.qastellan.device.StorageAccess
@@ -142,16 +144,19 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
     NavHost(nav, startDestination = if (settings.onboarded) Routes.HOME else Routes.ONBOARDING) {
         composable(Routes.ONBOARDING) {
             var step by remember { mutableStateOf(OnboardingStep.WELCOME) }
-            val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { step = OnboardingStep.DONE }
+            fun afterNotifications() = if (BatteryAccess.isExempt(context)) OnboardingStep.DONE else OnboardingStep.BATTERY
+            val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { step = afterNotifications() }
+            val battery = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { step = OnboardingStep.DONE }
             val files = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { step = OnboardingStep.NOTIFICATIONS }
             fun next() {
                 step = when (step) {
                     OnboardingStep.WELCOME -> OnboardingStep.APPS
                     OnboardingStep.APPS -> if (StorageAccess.canReadAllFiles(context)) OnboardingStep.NOTIFICATIONS else OnboardingStep.FILES
                     OnboardingStep.FILES -> OnboardingStep.NOTIFICATIONS
+                    OnboardingStep.NOTIFICATIONS -> afterNotifications()
                     else -> OnboardingStep.DONE
                 }
-                if (step == OnboardingStep.NOTIFICATIONS && Build.VERSION.SDK_INT < 33) step = OnboardingStep.DONE
+                if (step == OnboardingStep.NOTIFICATIONS && Build.VERSION.SDK_INT < 33) step = afterNotifications()
             }
             OnboardingScreen(
                 step,
@@ -160,6 +165,7 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                     when (step) {
                         OnboardingStep.FILES -> StorageAccess.requestIntent(context)?.let { files.launch(it) } ?: next()
                         OnboardingStep.NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= 33) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) else next()
+                        OnboardingStep.BATTERY -> runCatching { battery.launch(BatteryAccess.requestIntent(context)) }.onFailure { next() }
                         else -> next()
                     }
                 },
@@ -239,6 +245,12 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
             AuditScreen(audit, onFix = { c -> c.fix?.let { runCatching { context.startActivity(it) } } }, onBack = { nav.popBackStack() })
         }
         composable(Routes.SETTINGS) {
+            // Re-checked whenever the screen comes back, e.g. after the user changes it in system settings.
+            var batteryRestricted by remember { mutableStateOf(!BatteryAccess.isExempt(context)) }
+            LifecycleResumeEffect(Unit) {
+                batteryRestricted = !BatteryAccess.isExempt(context)
+                onPauseOrDispose {}
+            }
             SettingsScreen(
                 settings, definitions, appearance,
                 onRealtime = state::setRealtime,
@@ -249,6 +261,11 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                 onAppearance = state::setAppearance,
                 onAbout = { nav.navigate(Routes.ABOUT) },
                 onTab = ::tab,
+                batteryRestricted = batteryRestricted,
+                onFixBattery = {
+                    runCatching { context.startActivity(BatteryAccess.requestIntent(context)) }
+                        .onFailure { runCatching { context.startActivity(BatteryAccess.settingsIntent()) } }
+                },
             )
         }
         composable(Routes.ABOUT) {
