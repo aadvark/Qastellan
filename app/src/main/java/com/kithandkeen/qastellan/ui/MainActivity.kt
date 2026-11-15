@@ -6,7 +6,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.kithandkeen.qastellan.ui.theme.Appearance
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -62,6 +66,16 @@ class MainActivity : ComponentActivity() {
         val state = Qastellan.from(this).state
         setContent {
             val appearance by state.appearance.collectAsStateWithLifecycle()
+            val dark = when (appearance) {
+                Appearance.DARK -> true
+                Appearance.LIGHT -> false
+                Appearance.SYSTEM -> isSystemInDarkTheme()
+            }
+            // Status and navigation bar icons follow Qastellan's own light/dark setting.
+            LaunchedEffect(dark) {
+                val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(bars, bars)
+            }
             QastellanTheme(appearance) { App(state, pendingRoute) { pendingRoute = null } }
         }
     }
