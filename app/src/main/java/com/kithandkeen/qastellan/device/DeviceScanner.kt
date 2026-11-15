@@ -20,7 +20,16 @@ class DeviceScanner(private val context: Context) {
         val counts: Map<Stage, Int>,
     )
 
-    data class Summary(val findings: List<Finding>, val apps: Int, val files: Int, val millis: Long, val cancelled: Boolean)
+    data class Summary(
+        val findings: List<Finding>,
+        val apps: Int,
+        val files: Int,
+        val millis: Long,
+        val cancelled: Boolean,
+        val counts: Map<Stage, Int> = emptyMap(),
+        /** Set when the user checked one picked file rather than running a full scan. */
+        val fileName: String? = null,
+    )
 
     /** @param keepGoing returns false to cancel. */
     fun scan(includeStorage: Boolean = true, keepGoing: () -> Boolean = { true }, onProgress: (Progress) -> Unit = {}): Summary {
@@ -44,7 +53,7 @@ class DeviceScanner(private val context: Context) {
         }
 
         for ((i, pair) in apps.withIndex()) {
-            if (!keepGoing()) return Summary(findings, counts[Stage.APPS]!!, 0, System.currentTimeMillis() - started, true)
+            if (!keepGoing()) return Summary(findings, counts[Stage.APPS]!!, 0, System.currentTimeMillis() - started, true, counts.toMap())
             val (facts, apk) = pair
             step(Stage.APPS, i, apps.size, facts.packageName)
             app.scanner.scanApp(facts, apk)?.let(findings::add)
@@ -52,13 +61,14 @@ class DeviceScanner(private val context: Context) {
         for ((stage, list) in listOf(Stage.DOWNLOADS to downloads, Stage.STORAGE to storage)) {
             for ((i, file) in list.withIndex()) {
                 if (!keepGoing()) {
-                    return Summary(findings, apps.size, counts[Stage.DOWNLOADS]!! + counts[Stage.STORAGE]!!, System.currentTimeMillis() - started, true)
+                    return Summary(findings, apps.size, counts[Stage.DOWNLOADS]!! + counts[Stage.STORAGE]!!, System.currentTimeMillis() - started, true, counts.toMap())
                 }
                 step(stage, i, list.size, file.name)
                 app.scanner.scanFile(file)?.let(findings::add)
             }
         }
-        return Summary(findings, apps.size, downloads.size + storage.size, System.currentTimeMillis() - started, false)
+        val totals = mapOf(Stage.APPS to apps.size, Stage.DOWNLOADS to downloads.size, Stage.STORAGE to storage.size)
+        return Summary(findings, apps.size, downloads.size + storage.size, System.currentTimeMillis() - started, false, totals)
     }
 
     private fun downloadFiles(): List<File> =

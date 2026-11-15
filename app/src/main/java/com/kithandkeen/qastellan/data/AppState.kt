@@ -24,7 +24,7 @@ import java.io.File
 
 sealed class ScanState {
     object Idle : ScanState()
-    data class Running(val progress: DeviceScanner.Progress?) : ScanState()
+    data class Running(val progress: DeviceScanner.Progress?, val singleFile: Boolean = false) : ScanState()
     data class Done(val summary: DeviceScanner.Summary) : ScanState()
 }
 
@@ -108,7 +108,7 @@ class AppState(private val context: Context) {
 
     /** Show the scanning screen as busy while a picked file is copied in. */
     fun markScanStarting() {
-        if (scanJob?.isActive != true) _scan.value = ScanState.Running(null)
+        if (scanJob?.isActive != true) _scan.value = ScanState.Running(null, singleFile = true)
     }
 
     fun cancelScan() {
@@ -121,7 +121,7 @@ class AppState(private val context: Context) {
         val finding = app.scanner.scanFile(file)?.let {
             if (it is Finding.KnownThreat) it.copy(title = displayName) else it
         }
-        val summary = DeviceScanner.Summary(listOfNotNull(finding), 0, 1, 0, false)
+        val summary = DeviceScanner.Summary(listOfNotNull(finding), 0, 1, 0, false, fileName = displayName)
         if (finding != null) {
             _open.update { (it + finding).distinctBy(::keyOf) }
             history.add(HistoryEvent(HistoryEvent.Kind.THREAT, "File check · threat", "$displayName · ${(finding as? Finding.KnownThreat)?.detection ?: ""}"))

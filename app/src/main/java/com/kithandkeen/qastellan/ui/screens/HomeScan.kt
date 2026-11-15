@@ -95,7 +95,8 @@ fun HomeScreen(
     val context = LocalContext.current
     val action = model.threats > 0
     val noDefinitions = model.definitionsVersion == "none"
-    val color = if (action) t.warn else t.ok
+    val neverScanned = !action && model.lastScan == 0L
+    val color = when { action -> t.warn; neverScanned -> t.accent; else -> t.ok }
     Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Glyph(30.dp, t.accent, t.onAccent, 10f)
@@ -122,9 +123,10 @@ fun HomeScreen(
             }
             QCard(radius = 28.dp, padding = 20.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusRing(color, 148.dp, if (action) "Action needed" else "Protected")
+                    val headline = when { action -> "Action needed"; neverScanned -> "Not scanned yet"; else -> "You're protected" }
+                    StatusRing(color, 148.dp, headline)
                     Text(
-                        if (action) "Action needed" else "You're protected",
+                        headline,
                         style = Type.title, color = color, textAlign = TextAlign.Center,
                     )
                     Text(
@@ -156,8 +158,8 @@ fun HomeScreen(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Tile("App", Icons.phone, onPickApp, Modifier.weight(1f))
-                Tile("File", Icons.file, onPickFile, Modifier.weight(1f))
+                Tile("Scan app", Icons.phone, onPickApp, Modifier.weight(1f))
+                Tile("Scan file", Icons.file, onPickFile, Modifier.weight(1f))
                 Tile("Quarantine", Icons.lock, onQuarantine, Modifier.weight(1f))
                 Tile("Audit", Icons.audit, onAudit, Modifier.weight(1f))
             }
@@ -204,7 +206,7 @@ fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description:
             drawCircle(color.copy(alpha = 0.7f), radius = r - 1.dp.toPx(), style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 6.dp.toPx()))))
             drawCircle(t.border, radius = r * 0.82f, style = Stroke(1.dp.toPx()))
             drawArc(color, -90f, 120f, false, topLeft = Offset(r * 0.18f, r * 0.18f), size = androidx.compose.ui.geometry.Size(r * 1.64f, r * 1.64f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-            drawCircle(if (color == t.warn) t.warnSoft else t.okSoft, radius = r * 0.68f)
+            drawCircle(when (color) { t.warn -> t.warnSoft; t.ok -> t.okSoft; else -> t.ghost }, radius = r * 0.68f)
         }
         Glyph(size * 0.49f, color, if (t.dark) t.onAccent else androidx.compose.ui.graphics.Color.White, 7f)
     }
@@ -216,15 +218,16 @@ fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description:
 fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit) {
     val t = LocalTokens.current
     val running = state as? ScanState.Running
-    val done = state as? ScanState.Done
+    val done = (state as? ScanState.Done)?.summary
     val progress = running?.progress
+    val singleFile = running?.singleFile == true || done?.fileName != null
     val pct = when {
         done != null -> 100
         progress != null -> (progress.overall * 100).toInt().coerceIn(0, 99)
         else -> 0
     }
     Screen {
-        TopBar("Full scan", onCancel)
+        TopBar(if (singleFile) "File check" else "Full scan", onCancel)
         Column(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Box(Modifier.size(250.dp).semantics { contentDescription = "Scan progress $pct percent" }, contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(250.dp)) {
@@ -250,31 +253,42 @@ fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit
             )
             QCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
-                    DeviceScanner.Stage.entries.forEachIndexed { i, stage ->
-                        val count = progress?.counts?.get(stage) ?: 0
-                        val active = progress?.stage == stage
-                        val finished = done != null || (progress != null && progress.stage.ordinal > stage.ordinal)
+                    if (singleFile) {
                         Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                when { finished -> Icons.checkCircle; else -> Icons.waiting },
-                                when { finished -> t.ok; active -> t.accent; else -> t.muted },
-                                22.dp,
-                            )
-                            Text(stage.label, Modifier.padding(start = 12.dp).weight(1f), style = Type.body.copy(fontWeight = FontWeight.Medium), color = t.text)
-                            Text(
-                                if (count == 0 && !active && !finished) "—" else if (stage == DeviceScanner.Stage.APPS) "$count apps" else "$count files",
-                                style = Type.small.copy(fontFamily = Mono), color = t.muted,
-                            )
+                            Icon(if (done != null) Icons.checkCircle else Icons.waiting, if (done != null) t.ok else t.accent, 22.dp)
+                            Text(done?.fileName ?: "Picked file", Modifier.padding(start = 12.dp).weight(1f), style = Type.body.copy(fontWeight = FontWeight.Medium), color = t.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(if (done != null) "1 file" else "—", style = Type.small.copy(fontFamily = Mono), color = t.muted)
                         }
-                        if (i < 2) Divider()
+                    } else {
+                        DeviceScanner.Stage.entries.forEachIndexed { i, stage ->
+                            val active = progress?.stage == stage
+                            val finished = done != null || (progress != null && progress.stage.ordinal > stage.ordinal)
+                            val count = done?.counts?.get(stage) ?: progress?.counts?.get(stage) ?: 0
+                            Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(if (finished) Icons.checkCircle else Icons.waiting, when { finished -> t.ok; active -> t.accent; else -> t.muted }, 22.dp)
+                                Text(stage.label, Modifier.padding(start = 12.dp).weight(1f), style = Type.body.copy(fontWeight = FontWeight.Medium), color = t.text)
+                                Text(
+                                    when {
+                                        !active && !finished -> "—"
+                                        stage == DeviceScanner.Stage.APPS -> "$count apps"
+                                        else -> "$count files"
+                                    },
+                                    style = Type.small.copy(fontFamily = Mono), color = t.muted,
+                                )
+                            }
+                            if (i < 2) Divider()
+                        }
                     }
                 }
+            }
+            if (!singleFile && done != null && (done.counts[DeviceScanner.Stage.DOWNLOADS] ?: 0) + (done.counts[DeviceScanner.Stage.STORAGE] ?: 0) == 0) {
+                Text("Files were skipped: turn on all files access to scan downloads and storage.", style = Type.small, color = t.muted, textAlign = TextAlign.Center)
             }
             Spacer(Modifier.weight(1f))
             if (done != null) {
                 QButton("View results", onResults, Modifier.fillMaxWidth(), height = 56.dp)
             } else {
-                QButton("Cancel scan", onCancel, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 56.dp)
+                QButton(if (singleFile) "Cancel" else "Cancel scan", onCancel, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 56.dp)
             }
         }
     }
@@ -300,7 +314,7 @@ fun ResultsScreen(
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         StatusRing(t.ok, 120.dp, "No threats")
                         Text("No threats found", style = Type.title.copy(fontSize = 24.sp), color = t.ok)
-                        if (summary != null) Text("${summary.apps} apps and ${summary.files} files checked", style = Type.body, color = t.muted)
+                        if (summary != null) Text(summary.fileName?.let { "$it is clean" } ?: "${summary.apps} apps and ${summary.files} files checked", style = Type.body, color = t.muted, textAlign = TextAlign.Center)
                     }
                 }
             } else {
@@ -309,7 +323,7 @@ fun ResultsScreen(
                         Icon(Icons.shieldAlert, t.warn, 40.dp, strokeWidth = 1.8f)
                         Column(Modifier.padding(start = 14.dp)) {
                             Text("${threats.size} ${if (threats.size == 1) "threat" else "threats"} found", style = Type.heading, color = t.warn)
-                            if (summary != null) MonoLabel("${summary.apps} APPS · ${summary.files} FILES CHECKED")
+                            if (summary != null) MonoLabel(if (summary.fileName != null) "1 FILE CHECKED" else "${summary.apps} APPS · ${summary.files} FILES CHECKED")
                         }
                     }
                 }
