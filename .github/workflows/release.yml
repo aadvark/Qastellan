@@ -4,9 +4,12 @@ name: Release
 # Push a tag like v0.2.0 (matching versionName in app/build.gradle.kts) to publish
 # a signed APK to GitHub Releases. The website's download button always points to
 # the newest release's qastellan.apk.
+# Or run it from the Actions tab ("Run workflow"): it tags the current main
+# commit as v<versionName> and publishes that.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -26,11 +29,18 @@ jobs:
       - name: Check the tag matches the app version
         run: |
           version=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match versionName $version in app/build.gradle.kts"
             exit 1
           fi
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "::error::Release v$version already exists. Raise versionName first."
+            exit 1
+          fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "TAG=v$version" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run unit tests
         run: ./gradlew testGithubReleaseUnitTest
@@ -59,7 +69,7 @@ jobs:
           # Versions before 1.0 (and ones like 1.1.0-beta1) are test builds: pre-releases.
           prerelease=""
           case "$VERSION" in 0.*|*-*) prerelease="--prerelease" ;; esac
-          gh release create "$GITHUB_REF_NAME" dist/* $prerelease \
+          gh release create "$TAG" dist/* $prerelease --target "$GITHUB_SHA" \
             --title "Qastellan $VERSION" \
             --notes "Download **qastellan.apk** below and open it on your Android phone (Android 8.0+).
 
