@@ -388,7 +388,7 @@ body.menu-open .scrim{opacity:1;pointer-events:auto} body.menu-open .drawer{tran
     </div>
     <h2>Get Qastellan</h2>
     <p class="lead" id="release-note">Free for Android 8.0 and newer. Download the APK straight from our GitHub releases.</p>
-    <a class="btn btn-primary store" id="apk-link" href="https://github.com/aadvark/Qastellan/releases/latest/download/qastellan.apk"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg><span><small>Download the</small><b>Android APK</b></span></a>
+    <a class="btn btn-primary store" id="apk-link" href="https://github.com/aadvark/Qastellan/releases"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"/></svg><span><small>Download the</small><b>Android APK</b></span></a>
     <p class="verify">Every release lists its SHA-256 checksum on <a href="https://github.com/aadvark/Qastellan/releases">GitHub Releases</a>.</p>
     <span class="mono fineprint">ANDROID 8.0+ · NO ADS · NO ACCOUNT · MADE IN SINGAPORE</span>
   </div>
@@ -477,18 +477,34 @@ body.menu-open .scrim{opacity:1;pointer-events:auto} body.menu-open .drawer{tran
   }
   place(false);
 
-  // Release status: shows the latest version, or "coming soon" before the first release
-  fetch('https://api.github.com/repos/aadvark/Qastellan/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+  // Release status: the newest release with an APK. Before 1.0 that is a
+  // pre-release, shown as a preview build; from 1.0 on, the normal download.
+  fetch('https://api.github.com/repos/aadvark/Qastellan/releases?per_page=10', { headers: { Accept: 'application/vnd.github+json' } })
     .then(function (res) { return res.ok ? res.json() : null; })
-    .then(function (rel) {
+    .then(function (list) {
       var note = document.getElementById('release-note'), link = document.getElementById('apk-link');
-      if (rel && rel.tag_name && rel.tag_name !== 'definitions') {
-        note.textContent = 'Version ' + rel.tag_name.replace(/^v/, '') + ' · free for Android 8.0 and newer.';
-      } else {
+      var rel = null, apk = null;
+      (list || []).some(function (r) {
+        if (r.draft || r.tag_name === 'definitions') return false;
+        var a = (r.assets || []).filter(function (x) { return x.name === 'qastellan.apk'; })[0];
+        if (a) { rel = r; apk = a; return true; }
+        return false;
+      });
+      if (!rel) {
         note.textContent = 'Version 1.0 is on its way. Follow the project on GitHub to hear when it lands.';
         link.href = 'https://github.com/aadvark/Qastellan';
         link.querySelector('small').textContent = 'Coming soon';
         link.querySelector('b').textContent = 'Follow on GitHub';
+        return;
+      }
+      var version = rel.tag_name.replace(/^v/, '');
+      link.href = apk.browser_download_url;
+      if (rel.prerelease) {
+        note.textContent = 'Preview build ' + version + ': still being tested, so expect rough edges. Free for Android 8.0 and newer.';
+        link.querySelector('small').textContent = 'Preview build ' + version;
+        link.querySelector('b').textContent = 'Download the APK';
+      } else {
+        note.textContent = 'Version ' + version + ' · free for Android 8.0 and newer.';
       }
     })
     .catch(function () {});
