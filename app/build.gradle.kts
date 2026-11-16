@@ -12,8 +12,8 @@ android {
         applicationId = "com.kithandkeen.qastellan"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.2.3"
+        versionCode = 6
+        versionName = "0.2.4"
 
         // Where the daily definitions are published by .github/workflows/definitions.yml
         buildConfigField(

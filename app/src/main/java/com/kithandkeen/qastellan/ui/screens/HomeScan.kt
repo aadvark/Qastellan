@@ -103,7 +103,7 @@ fun HomeScreen(
     val scanning = model.scanProgress != null
     val pct = ((model.scanProgress ?: 0f) * 100).toInt().coerceIn(0, 99)
     val neverScanned = !action && model.lastScan == 0L
-    val color = when { scanning -> t.accent; action -> t.warn; neverScanned -> t.accent; else -> t.ok }
+    val color = when { scanning -> t.ok; action -> t.warn; neverScanned -> t.accent; else -> t.ok }
     Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Glyph(30.dp, t.accent, t.onAccent, 10f)
