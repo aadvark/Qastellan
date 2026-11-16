@@ -187,7 +187,12 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                 onPauseOrDispose {}
             }
             HomeScreen(
-                HomeModel(threats.size, settings.lastScan, definitions.version, definitions.lastCheck, settings.realtime, settings.appUpdateVersion, settings.appUpdateUrl, fileAccess),
+                HomeModel(
+                    threats.size, settings.lastScan, definitions.version, definitions.lastCheck, settings.realtime,
+                    settings.appUpdateVersion, settings.appUpdateUrl, fileAccess,
+                    scanProgress = (scan as? ScanState.Running)?.takeIf { !it.singleFile }?.let { it.progress?.overall ?: 0f },
+                    scanCurrent = (scan as? ScanState.Running)?.progress?.current,
+                ),
                 onAllowFiles = { StorageAccess.requestIntent(context)?.let { runCatching { context.startActivity(it) } } },
                 onScan = ::startScan,
                 onReview = { nav.navigate(Routes.RESULTS) },
@@ -207,6 +212,8 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                     nav.popBackStack()
                 },
                 onResults = { nav.navigate(Routes.RESULTS) { popUpTo(Routes.SCANNING) { inclusive = true } } },
+                // Back leaves the scan running in the background; only Cancel stops it.
+                onBack = { if (!nav.popBackStack()) nav.navigate(Routes.HOME) },
             )
         }
         composable(Routes.RESULTS) {

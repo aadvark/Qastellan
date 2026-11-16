@@ -42,14 +42,23 @@ class DeviceScanner(private val context: Context) {
         val storageOk = includeStorage && StorageAccess.canReadAllFiles(context)
         val downloads = if (storageOk) downloadFiles() else emptyList()
         val storage = if (storageOk) otherFiles() else emptyList()
-        // Weight stages by work so the ring moves evenly.
-        val total = (apps.size + downloads.size + storage.size).coerceAtLeast(1).toFloat()
-        var done = 0
+        // Each stage gets a share of the ring. Apps are slow (whole APKs) and few;
+        // storage holds thousands of small files, so counting items alone would
+        // leave the ring stuck near 0% while apps are checked.
+        val sizes = mapOf(Stage.APPS to apps.size, Stage.DOWNLOADS to downloads.size, Stage.STORAGE to storage.size)
+        val share = mapOf(Stage.APPS to 0.5f, Stage.DOWNLOADS to 0.15f, Stage.STORAGE to 0.35f)
+            .filterKeys { (sizes[it] ?: 0) > 0 }
+            .let { m -> val sum = m.values.sum().coerceAtLeast(0.0001f); m.mapValues { it.value / sum } }
+        val before = mapOf(
+            Stage.APPS to 0f,
+            Stage.DOWNLOADS to (share[Stage.APPS] ?: 0f),
+            Stage.STORAGE to (share[Stage.APPS] ?: 0f) + (share[Stage.DOWNLOADS] ?: 0f),
+        )
 
         fun step(stage: Stage, i: Int, size: Int, name: String) {
-            done++
             counts[stage] = i + 1
-            onProgress(Progress(stage, i + 1, size, done / total, name, counts.toMap()))
+            val overall = before.getValue(stage) + (share[stage] ?: 0f) * (i + 1) / size.coerceAtLeast(1)
+            onProgress(Progress(stage, i + 1, size, overall.coerceIn(0f, 1f), name, counts.toMap()))
         }
 
         for ((i, pair) in apps.withIndex()) {

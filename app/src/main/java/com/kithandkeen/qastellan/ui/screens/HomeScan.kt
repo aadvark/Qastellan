@@ -78,6 +78,9 @@ data class HomeModel(
     val appUpdate: String?,
     val appUpdateUrl: String?,
     val fileAccess: Boolean = true,
+    /** Set while a full scan runs in the background: 0..1 and the item being checked. */
+    val scanProgress: Float? = null,
+    val scanCurrent: String? = null,
 )
 
 @Composable
@@ -97,8 +100,10 @@ fun HomeScreen(
     val context = LocalContext.current
     val action = model.threats > 0
     val noDefinitions = model.definitionsVersion == "none"
+    val scanning = model.scanProgress != null
+    val pct = ((model.scanProgress ?: 0f) * 100).toInt().coerceIn(0, 99)
     val neverScanned = !action && model.lastScan == 0L
-    val color = when { action -> t.warn; neverScanned -> t.accent; else -> t.ok }
+    val color = when { scanning -> t.accent; action -> t.warn; neverScanned -> t.accent; else -> t.ok }
     Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Glyph(30.dp, t.accent, t.onAccent, 10f)
@@ -136,27 +141,31 @@ fun HomeScreen(
             }
             QCard(radius = 28.dp, padding = 20.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val headline = when { action -> "Action needed"; neverScanned -> "Not scanned yet"; else -> "You're protected" }
-                    StatusRing(color, 148.dp, headline)
+                    val headline = when { scanning -> "Scanning… $pct%"; action -> "Action needed"; neverScanned -> "Not scanned yet"; else -> "You're protected" }
+                    StatusRing(color, 148.dp, headline, model.scanProgress)
                     Text(
                         headline,
                         style = Type.title, color = color, textAlign = TextAlign.Center,
                     )
                     Text(
                         when {
+                            scanning -> model.scanCurrent ?: "Preparing…"
                             action -> "${model.threats} ${if (model.threats == 1) "threat is" else "threats are"} waiting for your review"
                             model.lastScan == 0L -> "Run your first scan to check every app and file"
                             else -> "No threats found in your last scan"
                         },
                         style = Type.body, color = t.muted, textAlign = TextAlign.Center,
                     )
-                    if (action) QButton("Review threats", onReview, kind = ButtonKind.DANGER, height = 44.dp)
+                    if (action && !scanning) QButton("Review threats", onReview, kind = ButtonKind.DANGER, height = 44.dp)
                     MonoLabel(
                         if (noDefinitions) "DEFINITIONS NOT DOWNLOADED YET" else "DEFS ${model.definitionsVersion} · ${if (model.realtime) "REAL-TIME ON" else "REAL-TIME OFF"}",
                     )
                 }
             }
-            QButton("Scan now", onScan, Modifier.fillMaxWidth(), height = 58.dp, leading = { Icon(Icons.search, t.onAccent, 20.dp, strokeWidth = 2.2f) })
+            QButton(
+                if (scanning) "Scanning… $pct%" else "Scan now", onScan, Modifier.fillMaxWidth(), height = 58.dp,
+                leading = { Icon(if (scanning) Icons.sync else Icons.search, t.onAccent, 20.dp, strokeWidth = 2.2f) },
+            )
             QCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
                     InfoRow("Last scan", friendlyTime(model.lastScan), null)
@@ -211,14 +220,14 @@ private fun Tile(label: String, icon: String, onClick: () -> Unit, modifier: Mod
 
 /** The big status badge: the logo inside dashed and solid rings. */
 @Composable
-fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description: String) {
+fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description: String, progress: Float? = null) {
     val t = LocalTokens.current
     Box(Modifier.size(size).semantics { contentDescription = description }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(size)) {
             val r = this.size.width / 2
             drawCircle(color.copy(alpha = 0.7f), radius = r - 1.dp.toPx(), style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 6.dp.toPx()))))
             drawCircle(t.border, radius = r * 0.82f, style = Stroke(1.dp.toPx()))
-            drawArc(color, -90f, 120f, false, topLeft = Offset(r * 0.18f, r * 0.18f), size = androidx.compose.ui.geometry.Size(r * 1.64f, r * 1.64f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+            drawArc(color, -90f, if (progress != null) 360f * progress else 120f, false, topLeft = Offset(r * 0.18f, r * 0.18f), size = androidx.compose.ui.geometry.Size(r * 1.64f, r * 1.64f), style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
             drawCircle(when (color) { t.warn -> t.warnSoft; t.ok -> t.okSoft; else -> t.ghost }, radius = r * 0.68f)
         }
         Glyph(size * 0.49f, color, if (t.dark) t.onAccent else androidx.compose.ui.graphics.Color.White, 7f)
@@ -228,7 +237,7 @@ fun StatusRing(color: androidx.compose.ui.graphics.Color, size: Dp, description:
 // ===================================================================== Scanning
 
 @Composable
-fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit) {
+fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit, onBack: () -> Unit = onCancel) {
     val t = LocalTokens.current
     val running = state as? ScanState.Running
     val done = (state as? ScanState.Done)?.summary
@@ -240,7 +249,7 @@ fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit
         else -> 0
     }
     Screen {
-        TopBar(if (singleFile) "File check" else "Full scan", onCancel)
+        TopBar(if (singleFile) "File check" else "Full scan", onBack)
         Column(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Box(Modifier.size(250.dp).semantics { contentDescription = "Scan progress $pct percent" }, contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(250.dp)) {

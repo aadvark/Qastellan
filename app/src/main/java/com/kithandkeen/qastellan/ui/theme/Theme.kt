@@ -12,9 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.unit.sp
 import com.kithandkeen.qastellan.R
 
@@ -88,24 +86,21 @@ val DarkTokens = Tokens(
 
 val LocalTokens = staticCompositionLocalOf { LightTokens }
 
-@OptIn(ExperimentalTextApi::class)
-private fun variable(res: Int, weight: Int) =
-    Font(res, FontWeight(weight), variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
-
+// Static weights rather than one variable font: some phones cache the first
+// weight of a variable font and draw every weight with it.
 val Outfit = FontFamily(
-    variable(R.font.outfit_variable, 300),
-    variable(R.font.outfit_variable, 400),
-    variable(R.font.outfit_variable, 500),
-    variable(R.font.outfit_variable, 600),
+    Font(R.font.outfit_regular, FontWeight.Normal),
+    Font(R.font.outfit_medium, FontWeight.Medium),
+    Font(R.font.outfit_semibold, FontWeight.SemiBold),
 )
 val Inter = FontFamily(
-    variable(R.font.inter_variable, 400),
-    variable(R.font.inter_variable, 500),
-    variable(R.font.inter_variable, 600),
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
 )
 val Mono = FontFamily(
-    variable(R.font.jetbrains_mono_variable, 400),
-    variable(R.font.jetbrains_mono_variable, 500),
+    Font(R.font.mono_regular, FontWeight.Normal),
+    Font(R.font.mono_medium, FontWeight.Medium),
 )
 
 object Type {
