@@ -155,6 +155,10 @@ fun HomeScreen(
                             else -> "No threats found in your last scan"
                         },
                         style = Type.body, color = t.muted, textAlign = TextAlign.Center,
+                        // While scanning, names change many times a second: keep them to one line
+                        // so the card doesn't grow and shrink.
+                        maxLines = if (scanning) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (action && !scanning) QButton("Review threats", onReview, kind = ButtonKind.DANGER, height = 44.dp)
                     MonoLabel(
