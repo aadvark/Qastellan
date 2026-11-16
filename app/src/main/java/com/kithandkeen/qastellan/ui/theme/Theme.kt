@@ -89,6 +89,7 @@ val LocalTokens = staticCompositionLocalOf { LightTokens }
 // Static weights rather than one variable font: some phones cache the first
 // weight of a variable font and draw every weight with it.
 val Outfit = FontFamily(
+    Font(R.font.outfit_light, FontWeight.Light),
     Font(R.font.outfit_regular, FontWeight.Normal),
     Font(R.font.outfit_medium, FontWeight.Medium),
     Font(R.font.outfit_semibold, FontWeight.SemiBold),

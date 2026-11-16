@@ -145,7 +145,8 @@ fun HomeScreen(
                     StatusRing(color, 148.dp, headline, model.scanProgress)
                     Text(
                         headline,
-                        style = Type.title, color = color, textAlign = TextAlign.Center,
+                        style = Type.title.copy(fontWeight = FontWeight.Light), // the status line stays light; titles are medium
+                        color = color, textAlign = TextAlign.Center,
                     )
                     Text(
                         when {
