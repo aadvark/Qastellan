@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -332,6 +333,7 @@ fun ResultsScreen(
     onQuarantine: () -> Unit,
     onDone: () -> Unit,
     onAllowFiles: () -> Unit = {},
+    onRefresh: () -> Unit = {},
 ) {
     val t = LocalTokens.current
     Screen {
@@ -355,7 +357,7 @@ fun ResultsScreen(
                         }
                     }
                 }
-                threats.forEach { f -> ThreatCard(f, onResolve, onUninstall, onQuarantine, onAllowFiles) }
+                threats.forEach { f -> key(AppState.keyOf(f)) { ThreatCard(f, onResolve, onUninstall, onQuarantine, onAllowFiles, onRefresh) } }
             }
             Spacer(Modifier.height(4.dp))
             QButton("Done", onDone, Modifier.fillMaxWidth(), height = 56.dp)
@@ -365,7 +367,7 @@ fun ResultsScreen(
 }
 
 @Composable
-fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninstall: (String) -> Unit, onQuarantine: () -> Unit, onAllowFiles: () -> Unit = {}) {
+fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninstall: (String) -> Unit, onQuarantine: () -> Unit, onAllowFiles: () -> Unit = {}, onRefresh: () -> Unit = {}) {
     val t = LocalTokens.current
     var details by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -422,7 +424,7 @@ fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninst
                         message = "Qastellan needs all files access to move this file."
                         needsAccess = true
                     } else if (known?.path?.let { java.io.File(it).exists() } == false) {
-                        message = "The file is no longer there. It may have been moved or deleted already."
+                        onRefresh() // already deleted elsewhere: the threat is gone, so clear it
                     } else {
                         message = "Couldn't move the file. Try again, or delete it in your Files app."
                     }

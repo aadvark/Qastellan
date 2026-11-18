@@ -181,6 +181,7 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
             // Re-checked when Home comes back, e.g. after granting it in system settings.
             var fileAccess by remember { mutableStateOf(StorageAccess.canReadAllFiles(context)) }
             LifecycleResumeEffect(Unit) {
+                state.refreshThreats()
                 val now = StorageAccess.canReadAllFiles(context)
                 if (now && !fileAccess && settings.realtime) ProtectionService.restart(context)
                 fileAccess = now
@@ -217,6 +218,11 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
             )
         }
         composable(Routes.RESULTS) {
+            // Files deleted in another app while Qastellan was in the background drop off here.
+            LifecycleResumeEffect(Unit) {
+                state.refreshThreats()
+                onPauseOrDispose {}
+            }
             ResultsScreen(
                 (scan as? ScanState.Done)?.summary,
                 threats,
@@ -224,6 +230,7 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
                 onUninstall = uninstall,
                 onQuarantine = { nav.navigate(Routes.QUARANTINE) },
                 onAllowFiles = { StorageAccess.requestIntent(context)?.let { runCatching { context.startActivity(it) } } },
+                onRefresh = state::refreshThreats,
                 onDone = {
                     state.clearScanResult()
                     if (!nav.popBackStack(Routes.HOME, false)) nav.navigate(Routes.HOME)

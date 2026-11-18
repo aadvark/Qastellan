@@ -168,16 +168,29 @@ class AppState(private val context: Context) {
         return ok
     }
 
-    /** After the system uninstall dialog closes: drop findings whose app is gone. */
-    fun refreshAfterUninstall() {
+    /**
+     * Drop threats that are no longer on the phone: apps that were uninstalled
+     * and files that were deleted or moved (in Qastellan or any other app).
+     */
+    fun refreshThreats() {
         val pm = context.packageManager
-        _open.update { list ->
-            list.filter { f ->
-                val pkg = packageOf(f) ?: return@filter true
-                runCatching { pm.getPackageInfo(pkg, 0) }.isSuccess
+        val gone = _open.value.filter { f ->
+            val pkg = packageOf(f)
+            val known = f as? Finding.KnownThreat
+            when {
+                pkg != null -> runCatching { pm.getPackageInfo(pkg, 0) }.isFailure
+                known?.path != null && known.sourceUri == null -> !File(known.path).exists()
+                else -> false
             }
         }
+        if (gone.isEmpty()) return
+        _open.update { list -> list.filterNot { f -> gone.any { keyOf(it) == keyOf(f) } } }
+        gone.forEach { f ->
+            history.add(HistoryEvent(HistoryEvent.Kind.ACTION, if (packageOf(f) != null) "Threat removed: app uninstalled" else "Threat removed: file deleted", f.title))
+        }
     }
+
+    fun refreshAfterUninstall() = refreshThreats()
 
     fun clearScanResult() {
         if (_scan.value is ScanState.Done) _scan.value = ScanState.Idle
