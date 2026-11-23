@@ -179,7 +179,8 @@ class AppState(private val context: Context) {
             val known = f as? Finding.KnownThreat
             when {
                 pkg != null -> runCatching { pm.getPackageInfo(pkg, 0) }.isFailure
-                known?.path != null && known.sourceUri == null -> !File(known.path).exists()
+                // Gone, or empty (0-byte files were wrongly flagged before 0.3.1).
+                known?.path != null && known.sourceUri == null -> File(known.path).let { !it.exists() || it.length() == 0L }
                 else -> false
             }
         }

@@ -16,6 +16,8 @@ class Definitions(
 
     /** Detection name for a file's hashes, or null when the file is clean. */
     fun match(hashes: FileHashes): String? {
+        // An empty file can't do anything, but some feeds list its hash as malware.
+        if (hashes.isEmptyFile) return null
         val id = sha256.lookup(hashes.sha256) ?: sha1.lookup(hashes.sha1) ?: md5.lookup(hashes.md5)
         return id?.let { names.getOrElse(it) { "Unknown threat" } }
     }

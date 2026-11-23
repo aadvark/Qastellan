@@ -11,3 +11,12 @@ class DisplayNameTest {
         assertEquals(".hidden.apk", Scanner.displayName(".hidden.apk"))
     }
 }
+
+class EmptyFileTest {
+    @Test
+    fun emptyFileHashesNeverMatch() {
+        val empty = Hasher.hash(ByteArray(0).inputStream())
+        org.junit.Assert.assertTrue(empty.isEmptyFile)
+        org.junit.Assert.assertFalse(Hasher.hash("x".byteInputStream()).isEmptyFile)
+    }
+}

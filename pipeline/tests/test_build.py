@@ -172,3 +172,19 @@ def test_exodus_trackers_become_prefix_lists(tmp_path: Path, sources: Path) -> N
     ]
     assert manifest["sources"]["exodus"] == 2
     assert "trackers.txt" in manifest["files"]
+
+
+def test_empty_file_hashes_are_dropped(tmp_path):
+    import hashlib
+    from qdefs import build
+    extra = tmp_path / "extra.txt"
+    extra.write_text(
+        f"{hashlib.md5(b'').hexdigest()} Andr.Malware.Empty\n"
+        f"{hashlib.sha256(b'bad').hexdigest()} Andr.Real\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    build.main(["--extra", str(extra), "--out", str(out), "--allow-unsigned"])
+    names = (out / "names.txt").read_text(encoding="utf-8").split()
+    assert "Andr.Malware.Empty" not in names
+    assert "Andr.Real" in names

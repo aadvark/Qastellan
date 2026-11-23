@@ -6,6 +6,13 @@ import java.security.MessageDigest
 
 class FileHashes(val md5: ByteArray, val sha1: ByteArray, val sha256: ByteArray) {
     fun sha256Hex(): String = sha256.toHex()
+
+    /** True for the hashes of a 0-byte file. */
+    val isEmptyFile: Boolean get() = sha256.toHex() == EMPTY_SHA256
+
+    companion object {
+        const val EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
 }
 
 fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

@@ -26,6 +26,8 @@ from typing import Iterable, Iterator
 from . import formats
 from .signing import sign
 
+EMPTY_DIGESTS = {hashlib.new(a, b"").hexdigest() for a in ("md5", "sha1", "sha256")}
+
 TABLE_FILES = {"md5": "md5.qhs", "sha1": "sha1.qhs", "sha256": "sha256.qhs"}
 
 
@@ -92,6 +94,12 @@ def build(args: argparse.Namespace) -> dict:
     out.mkdir(parents=True, exist_ok=True)
 
     signatures, packages, counts = collect(args)
+    # Some feeds list the hash of an empty file (ClamAV has one as an Android
+    # signature). Every 0-byte file on a phone would match it, so drop them.
+    before = len(signatures)
+    signatures = [s for s in signatures if s.digest.lower() not in EMPTY_DIGESTS]
+    if len(signatures) != before:
+        print(f"dropped {before - len(signatures)} empty-file hash(es)", file=sys.stderr)
     tables, names = formats.build_tables(signatures)
 
     files: dict[str, dict] = {}

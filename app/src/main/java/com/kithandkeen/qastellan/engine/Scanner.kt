@@ -22,7 +22,7 @@ class Scanner(
     private val riskScorer: RiskScorer = RiskScorer(),
 ) {
     fun scanFile(file: File): Finding? {
-        if (!file.isFile || !file.canRead()) return null
+        if (!file.isFile || !file.canRead() || file.length() == 0L) return null
         val hashes = try {
             Hasher.hash(file)
         } catch (e: Exception) {
