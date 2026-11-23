@@ -21,6 +21,11 @@ object BatteryAccess {
     fun requestIntent(context: Context): Intent =
         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
 
+    /** False on TVs (always on mains power) and devices without the setting. */
+    fun canRequest(context: Context): Boolean =
+        !com.kithandkeen.qastellan.ui.components.isTv(context) &&
+            requestIntent(context).resolveActivity(context.packageManager) != null
+
     /** Fallback: the list of battery optimisation settings for all apps. */
     fun settingsIntent(): Intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 }

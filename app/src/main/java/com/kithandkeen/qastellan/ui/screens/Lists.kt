@@ -49,6 +49,7 @@ import com.kithandkeen.qastellan.ui.components.ButtonKind
 import com.kithandkeen.qastellan.ui.components.Chip
 import com.kithandkeen.qastellan.ui.components.ChipRow
 import com.kithandkeen.qastellan.ui.components.Divider
+import com.kithandkeen.qastellan.ui.components.focusRing
 import com.kithandkeen.qastellan.ui.components.Glyph
 import com.kithandkeen.qastellan.ui.components.Icon
 import com.kithandkeen.qastellan.ui.components.Icons
@@ -192,7 +193,7 @@ fun AppsScreen(apps: List<AppReport>?, onOpen: (String) -> Unit, onTab: (Tab) ->
                 if (shown.isEmpty()) item { com.kithandkeen.qastellan.ui.Placeholder("No apps match this filter.") }
                 items(shown, key = { it.facts.packageName }) { a ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { onOpen(a.facts.packageName) }
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).focusRing(RoundedCornerShape(14.dp), grow = false).clickable(role = Role.Button) { onOpen(a.facts.packageName) }
                             .padding(vertical = 10.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -268,7 +269,7 @@ fun AppDetailScreen(report: AppReport?, onAcknowledge: () -> Unit, onPermissions
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.alertCircle, t.warn, 20.dp)
                         Text("Gained access to ${report.newAccess.joinToString()} since Qastellan last checked.", Modifier.padding(start = 10.dp).weight(1f), style = Type.small, color = t.text)
-                        Text("Got it", Modifier.clickable(role = Role.Button, onClick = onAcknowledge).padding(8.dp), style = Type.label, color = t.accent)
+                        Text("Got it", Modifier.focusRing(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onAcknowledge).padding(8.dp), style = Type.label, color = t.accent)
                     }
                 }
             }

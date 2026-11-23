@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +58,8 @@ import com.kithandkeen.qastellan.ui.Tab
 import com.kithandkeen.qastellan.ui.components.ButtonKind
 import com.kithandkeen.qastellan.ui.components.Chip
 import com.kithandkeen.qastellan.ui.components.Divider
+import com.kithandkeen.qastellan.ui.components.focusRing
+import com.kithandkeen.qastellan.ui.components.LocalLayout
 import com.kithandkeen.qastellan.ui.components.Glyph
 import com.kithandkeen.qastellan.ui.components.Icon
 import com.kithandkeen.qastellan.ui.components.Icons
@@ -79,6 +86,8 @@ data class HomeModel(
     val appUpdate: String?,
     val appUpdateUrl: String?,
     val fileAccess: Boolean = true,
+    /** False on devices without a file picker (most TVs): the Scan file tile is hidden. */
+    val canPickFiles: Boolean = true,
     /** Set while a full scan runs in the background: 0..1 and the item being checked. */
     val scanProgress: Float? = null,
     val scanCurrent: String? = null,
@@ -105,20 +114,11 @@ fun HomeScreen(
     val pct = ((model.scanProgress ?: 0f) * 100).toInt().coerceIn(0, 99)
     val neverScanned = !action && model.lastScan == 0L
     val color = when { scanning -> t.ok; action -> t.warn; neverScanned -> t.accent; else -> t.ok }
-    Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
-        Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Glyph(30.dp, t.accent, t.onAccent, 10f)
-            Text("Qastellan", Modifier.padding(start = 8.dp).weight(1f), style = Type.heading, color = t.text)
-            Box(
-                Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(role = Role.Button, onClick = onSettings)
-                    .semantics { contentDescription = "Protection settings" },
-                contentAlignment = Alignment.Center,
-            ) { Icon(Icons.settings, t.text, 22.dp) }
-        }
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+    val layout = LocalLayout.current
+    val scanFocus = remember { FocusRequester() }
+    // On a TV the remote starts on Scan now.
+    LaunchedEffect(layout.tv) { if (layout.tv) runCatching { scanFocus.requestFocus() } }
+    val banners: @Composable () -> Unit = {
             if (model.appUpdate != null) {
                 QCard(padding = 14.dp, background = t.okSoft, borderColor = t.ok) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -140,6 +140,8 @@ fun HomeScreen(
                     }
                 }
             }
+    }
+    val statusCard: @Composable () -> Unit = {
             QCard(radius = 28.dp, padding = 20.dp) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val headline = when { scanning -> "Scanning… $pct%"; action -> "Action needed"; neverScanned -> "Not scanned yet"; else -> "You're protected" }
@@ -168,10 +170,14 @@ fun HomeScreen(
                     )
                 }
             }
+    }
+    val scanButton: @Composable () -> Unit = {
             QButton(
-                if (scanning) "Scanning… $pct%" else "Scan now", onScan, Modifier.fillMaxWidth(), height = 58.dp,
+                if (scanning) "Scanning… $pct%" else "Scan now", onScan, Modifier.fillMaxWidth().focusRequester(scanFocus), height = 58.dp,
                 leading = { Icon(if (scanning) Icons.sync else Icons.search, t.onAccent, 20.dp, strokeWidth = 2.2f) },
             )
+    }
+    val infoCard: @Composable () -> Unit = {
             QCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
                     InfoRow("Last scan", friendlyTime(model.lastScan), null)
@@ -185,13 +191,58 @@ fun HomeScreen(
                     InfoRow("Real-time protection", if (model.realtime) "On" else "Off", if (model.realtime) t.ok else t.warn)
                 }
             }
+    }
+    val tiles: @Composable () -> Unit = {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Tile("Scan app", Icons.phone, onPickApp, Modifier.weight(1f))
-                Tile("Scan file", Icons.file, onPickFile, Modifier.weight(1f))
+                if (model.canPickFiles) Tile("Scan file", Icons.file, onPickFile, Modifier.weight(1f))
                 Tile("Quarantine", Icons.lock, onQuarantine, Modifier.weight(1f))
                 Tile("Audit", Icons.audit, onAudit, Modifier.weight(1f))
             }
-            Spacer(Modifier.height(8.dp))
+    }
+
+    Screen(bottomBar = { BottomNav(Tab.HOME, onTab) }) {
+        Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Wide screens already show the logo in the side navigation.
+            if (!layout.wide) Glyph(30.dp, t.accent, t.onAccent, 10f)
+            Text("Qastellan", Modifier.padding(start = if (layout.wide) 0.dp else 8.dp).weight(1f), style = Type.heading, color = t.text)
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).focusRing(RoundedCornerShape(22.dp)).clickable(role = Role.Button, onClick = onSettings)
+                    .semantics { contentDescription = "Protection settings" },
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.settings, t.text, 22.dp) }
+        }
+        if (layout.wide) {
+            // Landscape, tablet, TV: status and Scan on the left, details and tools on the right.
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                banners()
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        statusCard()
+                        scanButton()
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        infoCard()
+                        tiles()
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        } else {
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                banners()
+                statusCard()
+                scanButton()
+                infoCard()
+                tiles()
+                Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }
@@ -215,6 +266,7 @@ private fun Tile(label: String, icon: String, onClick: () -> Unit, modifier: Mod
             .clip(shape)
             .background(t.solid)
             .border(1.5.dp, t.accent, shape)
+            .focusRing(shape)
             .clickable(role = Role.Button, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -256,7 +308,7 @@ fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit
     }
     Screen {
         TopBar(if (singleFile) "File check" else "Full scan", onBack)
-        Column(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        val ring: @Composable () -> Unit = {
             Box(Modifier.size(250.dp).semantics { contentDescription = "Scan progress $pct percent" }, contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(250.dp)) {
                     val r = size.width / 2
@@ -279,6 +331,8 @@ fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit
                 },
                 style = Type.small.copy(fontFamily = Mono), color = t.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
+        }
+        val details: @Composable ColumnScope.() -> Unit = {
             QCard(padding = 0.dp) {
                 Column(Modifier.padding(horizontal = 18.dp)) {
                     if (singleFile) {
@@ -317,6 +371,18 @@ fun ScanningScreen(state: ScanState, onCancel: () -> Unit, onResults: () -> Unit
                 QButton("View results", onResults, Modifier.fillMaxWidth(), height = 56.dp)
             } else {
                 QButton(if (singleFile) "Cancel" else "Cancel scan", onCancel, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, height = 56.dp)
+            }
+        }
+        if (LocalLayout.current.wide) {
+            // Landscape, tablet, TV: the ring beside the stage list.
+            Row(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically)) { ring() }
+                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(20.dp)) { details() }
+            }
+        } else {
+        Column(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                ring()
+                details()
             }
         }
     }
@@ -392,7 +458,7 @@ fun ThreatCard(f: Finding, onResolve: (Finding, Resolution) -> Boolean, onUninst
             )
             Text(
                 if (details) "Hide technical details" else "Show technical details",
-                Modifier.clickable(role = Role.Button) { details = !details }.padding(vertical = 6.dp),
+                Modifier.focusRing(RoundedCornerShape(8.dp)).clickable(role = Role.Button) { details = !details }.padding(vertical = 6.dp),
                 style = Type.bodyStrong.copy(fontSize = 14.sp), color = t.accent,
             )
             if (details) {

@@ -7,6 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.kithandkeen.qastellan.ui.components.Glyph
+import com.kithandkeen.qastellan.ui.components.LocalLayout
+import com.kithandkeen.qastellan.ui.components.focusRing
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Text
@@ -55,6 +63,10 @@ enum class Tab(val route: String, val label: String, val icon: String) {
 @Composable
 fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
     val t = LocalTokens.current
+    if (LocalLayout.current.wide) {
+        NavRail(current, onSelect)
+        return
+    }
     Column(Modifier.fillMaxWidth().background(t.nav).navigationBarsPadding()) {
         Divider()
         Row(Modifier.fillMaxWidth().height(68.dp)) {
@@ -65,6 +77,7 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
                     Modifier
                         .weight(1f)
                         .height(68.dp)
+                        .focusRing(RoundedCornerShape(16.dp), grow = false)
                         .clickable(role = Role.Tab) { if (!on) onSelect(tab) }
                         .semantics { selected = on },
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -79,6 +92,38 @@ fun BottomNav(current: Tab, onSelect: (Tab) -> Unit) {
 }
 
 /** "Today, 9:41 AM", "Yesterday, 6:02 PM" or a short date. */
+/** Side navigation for landscape, tablets and TVs. */
+@Composable
+private fun NavRail(current: Tab, onSelect: (Tab) -> Unit) {
+    val t = LocalTokens.current
+    Column(
+        Modifier.fillMaxHeight().width(96.dp).padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Glyph(36.dp, t.accent, t.onAccent, 10f, Modifier.padding(bottom = 18.dp))
+        Tab.entries.forEach { tab ->
+            val on = tab == current
+            val color = if (on) t.accent else t.muted
+            Column(
+                Modifier
+                    .width(80.dp)
+                    .height(72.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (on) t.ghost else androidx.compose.ui.graphics.Color.Transparent)
+                    .focusRing(RoundedCornerShape(16.dp))
+                    .clickable(role = Role.Tab) { if (!on) onSelect(tab) }
+                    .semantics { selected = on },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(tab.icon, color, 24.dp)
+                Text(tab.label, style = Type.label.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium), color = color)
+            }
+        }
+    }
+}
+
 fun friendlyTime(millis: Long): String {
     if (millis <= 0) return "Never"
     val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))

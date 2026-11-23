@@ -16,6 +16,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import com.kithandkeen.qastellan.ui.components.Layout
+import com.kithandkeen.qastellan.ui.components.LocalLayout
+import com.kithandkeen.qastellan.ui.components.isTv
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +84,10 @@ class MainActivity : ComponentActivity() {
                 val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 enableEdgeToEdge(bars, bars)
             }
-            QastellanTheme(appearance) { App(state, pendingRoute) { pendingRoute = null } }
+            QastellanTheme(appearance) {
+                val layout = Layout(wide = LocalConfiguration.current.screenWidthDp >= 600, tv = isTv(this))
+                CompositionLocalProvider(LocalLayout provides layout) { App(state, pendingRoute) { pendingRoute = null } }
+            }
         }
     }
 
@@ -145,14 +153,14 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
     NavHost(nav, startDestination = if (settings.onboarded) Routes.HOME else Routes.ONBOARDING) {
         composable(Routes.ONBOARDING) {
             var step by remember { mutableStateOf(OnboardingStep.WELCOME) }
-            fun afterNotifications() = if (BatteryAccess.isExempt(context)) OnboardingStep.DONE else OnboardingStep.BATTERY
+            fun afterNotifications() = if (BatteryAccess.isExempt(context) || !BatteryAccess.canRequest(context)) OnboardingStep.DONE else OnboardingStep.BATTERY
             val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { step = afterNotifications() }
             val battery = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { step = OnboardingStep.DONE }
             val files = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { step = OnboardingStep.NOTIFICATIONS }
             fun next() {
                 step = when (step) {
                     OnboardingStep.WELCOME -> OnboardingStep.APPS
-                    OnboardingStep.APPS -> if (StorageAccess.canReadAllFiles(context)) OnboardingStep.NOTIFICATIONS else OnboardingStep.FILES
+                    OnboardingStep.APPS -> if (StorageAccess.canReadAllFiles(context) || !StorageAccess.canRequest(context)) OnboardingStep.NOTIFICATIONS else OnboardingStep.FILES
                     OnboardingStep.FILES -> OnboardingStep.NOTIFICATIONS
                     OnboardingStep.NOTIFICATIONS -> afterNotifications()
                     else -> OnboardingStep.DONE
@@ -179,10 +187,15 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
         }
         composable(Routes.HOME) {
             // Re-checked when Home comes back, e.g. after granting it in system settings.
-            var fileAccess by remember { mutableStateOf(StorageAccess.canReadAllFiles(context)) }
+            // No warning where the device has no way to grant it (some TVs): it would lead nowhere.
+            fun fileAccessOk() = StorageAccess.canReadAllFiles(context) || !StorageAccess.canRequest(context)
+            val canPickFiles = remember {
+                Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").resolveActivity(context.packageManager) != null
+            }
+            var fileAccess by remember { mutableStateOf(fileAccessOk()) }
             LifecycleResumeEffect(Unit) {
                 state.refreshThreats()
-                val now = StorageAccess.canReadAllFiles(context)
+                val now = fileAccessOk()
                 if (now && !fileAccess && settings.realtime) ProtectionService.restart(context)
                 fileAccess = now
                 onPauseOrDispose {}
@@ -190,7 +203,7 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
             HomeScreen(
                 HomeModel(
                     threats.size, settings.lastScan, definitions.version, definitions.lastCheck, settings.realtime,
-                    settings.appUpdateVersion, settings.appUpdateUrl, fileAccess,
+                    settings.appUpdateVersion, settings.appUpdateUrl, fileAccess, canPickFiles,
                     scanProgress = (scan as? ScanState.Running)?.takeIf { !it.singleFile }?.let { it.progress?.overall ?: 0f },
                     scanCurrent = (scan as? ScanState.Running)?.progress?.current,
                 ),
@@ -271,9 +284,10 @@ private fun App(state: AppState, pendingRoute: String?, onRouteHandled: () -> Un
         }
         composable(Routes.SETTINGS) {
             // Re-checked whenever the screen comes back, e.g. after the user changes it in system settings.
-            var batteryRestricted by remember { mutableStateOf(!BatteryAccess.isExempt(context)) }
+            fun restricted() = BatteryAccess.canRequest(context) && !BatteryAccess.isExempt(context)
+            var batteryRestricted by remember { mutableStateOf(restricted()) }
             LifecycleResumeEffect(Unit) {
-                batteryRestricted = !BatteryAccess.isExempt(context)
+                batteryRestricted = restricted()
                 onPauseOrDispose {}
             }
             SettingsScreen(

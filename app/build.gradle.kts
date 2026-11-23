@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "com.kithandkeen.qastellan"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kithandkeen.qastellan"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 8
-        versionName = "0.2.6"
+        targetSdk = 36
+        versionCode = 9
+        versionName = "0.3.0"
 
         // Where the daily definitions are published by .github/workflows/definitions.yml
         buildConfigField(

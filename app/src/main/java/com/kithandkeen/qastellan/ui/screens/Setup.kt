@@ -43,6 +43,7 @@ import com.kithandkeen.qastellan.ui.Tab
 import com.kithandkeen.qastellan.ui.components.BigTitle
 import com.kithandkeen.qastellan.ui.components.ButtonKind
 import com.kithandkeen.qastellan.ui.components.Divider
+import com.kithandkeen.qastellan.ui.components.focusRing
 import com.kithandkeen.qastellan.ui.components.Glyph
 import com.kithandkeen.qastellan.ui.components.Icon
 import com.kithandkeen.qastellan.ui.components.Icons
@@ -128,7 +129,7 @@ fun SettingsScreen(
                         val on = a == appearance
                         Box(
                             Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(if (on) t.surface else androidx.compose.ui.graphics.Color.Transparent)
-                                .clickable(role = Role.RadioButton) { onAppearance(a) }.semantics { selected = on },
+                                .focusRing(RoundedCornerShape(10.dp)).clickable(role = Role.RadioButton) { onAppearance(a) }.semantics { selected = on },
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(a.name.lowercase().replaceFirstChar { it.uppercase() }, style = Type.label.copy(fontSize = 13.sp), color = if (on) t.text else t.muted)
@@ -150,7 +151,7 @@ fun SettingsScreen(
 @Composable
 private fun LinkRow(text: String, onClick: () -> Unit) {
     val t = LocalTokens.current
-    Row(Modifier.fillMaxWidth().height(52.dp).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(52.dp).focusRing(RoundedCornerShape(10.dp), grow = false).clickable(role = Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
         Text(text, Modifier.weight(1f), style = Type.body, color = t.text)
         Icon(Icons.chevron, t.muted, 18.dp)
     }
@@ -246,7 +247,7 @@ fun AuditScreen(checks: List<AuditCheck>, onFix: (AuditCheck) -> Unit, onBack: (
                                 Text(
                                     c.fixLabel ?: "Fix",
                                     Modifier.clip(RoundedCornerShape(17.dp)).border(1.dp, t.accent, RoundedCornerShape(17.dp))
-                                        .clickable(role = Role.Button) { onFix(c) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                                        .focusRing(RoundedCornerShape(17.dp)).clickable(role = Role.Button) { onFix(c) }.padding(horizontal = 14.dp, vertical = 8.dp),
                                     style = Type.label.copy(fontSize = 13.sp), color = t.accent,
                                 )
                             }

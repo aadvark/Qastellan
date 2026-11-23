@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -113,11 +116,24 @@ fun Screen(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val t = LocalTokens.current
+    val layout = LocalLayout.current
     Box(Modifier.fillMaxSize().background(t.bg)) {
         CubeBackground()
-        Column(Modifier.fillMaxSize().statusBarsPadding()) {
-            Column(Modifier.weight(1f).fillMaxWidth(), content = content)
-            if (bottomBar != null) bottomBar() else Spacer(Modifier.navigationBarsPadding())
+        if (layout.wide) {
+            // Landscape, tablet and TV: navigation on the left, content centred at a readable width.
+            // TVs crop their edges, so keep everything inside the safe area.
+            val edge = if (layout.tv) Modifier.padding(horizontal = 48.dp, vertical = 27.dp) else Modifier.systemBarsPadding()
+            Row(Modifier.fillMaxSize().then(edge)) {
+                if (bottomBar != null) bottomBar()
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
+                    Column(Modifier.widthIn(max = 960.dp).fillMaxSize(), content = content)
+                }
+            }
+        } else {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                Column(Modifier.weight(1f).fillMaxWidth(), content = content)
+                if (bottomBar != null) bottomBar() else Spacer(Modifier.navigationBarsPadding())
+            }
         }
     }
 }
@@ -208,6 +224,7 @@ fun QButton(
             .clip(shape)
             .background(bg)
             .then(if (border != null) Modifier.border(1.dp, border, shape) else Modifier)
+            .focusRing(shape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
@@ -224,6 +241,7 @@ fun Toggle(checked: Boolean, label: String, hint: String, onChange: (Boolean) ->
     Row(
         modifier
             .fillMaxWidth()
+            .focusRing(RoundedCornerShape(12.dp), grow = false)
             .toggleable(checked, role = Role.Switch, onValueChange = onChange)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -261,7 +279,7 @@ fun TopBar(title: String, onBack: (() -> Unit)?) {
     ) {
         if (onBack != null) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = "Back", onClick = onBack)
+                Modifier.size(44.dp).clip(CircleShape).focusRing(CircleShape).clickable(role = Role.Button, onClickLabel = "Back", onClick = onBack)
                     .semantics { contentDescription = "Back" },
                 contentAlignment = Alignment.Center,
             ) { Icon(Icons.back, t.text, 24.dp) }
@@ -324,6 +342,7 @@ fun ChipRow(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
                     .clip(RoundedCornerShape(17.dp))
                     .background(if (on) t.accent else t.surface)
                     .border(1.dp, if (on) t.accent else t.border, RoundedCornerShape(17.dp))
+                    .focusRing(RoundedCornerShape(17.dp))
                     .clickable(role = Role.Tab) { onSelect(i) }
                     .padding(horizontal = 13.dp, vertical = 8.dp),
             )

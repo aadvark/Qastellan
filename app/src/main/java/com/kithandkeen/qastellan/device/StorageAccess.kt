@@ -18,6 +18,10 @@ object StorageAccess {
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         }
 
+    /** False where the phone or TV has no screen for granting it (some Android TVs). */
+    fun canRequest(context: Context): Boolean =
+        requestIntent(context)?.resolveActivity(context.packageManager) != null
+
     /** Opens the system screen where the user grants all files access (Android 11+). */
     fun requestIntent(context: Context): Intent? =
         if (Build.VERSION.SDK_INT >= 30) {
